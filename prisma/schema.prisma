@@ -1,0 +1,293 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// AUTH & USERS
+// ─────────────────────────────────────────────
+
+enum Role {
+  CONSULTANT
+  LEARNER
+  ADMIN
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String
+  password      String
+  role          Role      @default(LEARNER)
+  avatar        String?
+  bio           String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  projectsCreated    Project[]         @relation("ProjectCreator")
+  projectsAssigned   ProjectAssignee[] @relation("AssignedLearner")
+  workRequests       WorkRequest[]     @relation("LearnerRequests")
+  comments           Comment[]
+  signoffs           VersionSignoff[]
+  usageEvents        UsageEvent[]
+  notifications      Notification[]
+
+  @@map("users")
+}
+
+// ─────────────────────────────────────────────
+// PROJECTS
+// ─────────────────────────────────────────────
+
+enum ProjectStatus {
+  OPEN
+  IN_PROGRESS
+  DONE
+  ARCHIVED
+}
+
+model Project {
+  id            String        @id @default(cuid())
+  title         String
+  status        ProjectStatus @default(OPEN)
+  deadline      DateTime
+  technologies  String[]      // Array of technology tags
+  currentPhase  Int           @default(1)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // Relations
+  creatorId     String
+  creator       User          @relation("ProjectCreator", fields: [creatorId], references: [id])
+
+  versions      ProjectVersion[]
+  milestones    Milestone[]
+  phases        ProjectPhase[]
+  assignees     ProjectAssignee[]
+  workRequests  WorkRequest[]
+  comments      Comment[]
+  usageEvents   UsageEvent[]
+
+  @@map("projects")
+}
+
+// Each submission of a project creates a new version
+model ProjectVersion {
+  id              String    @id @default(cuid())
+  versionNumber   Int
+  // Tiptap JSON stored as JSON
+  descriptionJson Json
+  // Plain text snapshot for search/diff
+  descriptionText String    @db.Text
+  submittedAt     DateTime  @default(now())
+  // Whether this version is the currently active one
+  isActive        Boolean   @default(false)
+  // Phase this version belongs to
+  phaseNumber     Int       @default(1)
+  // Status of this version
+  status          VersionStatus @default(PENDING)
+
+  projectId       String
+  project         Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  submittedById   String
+  signoffs        VersionSignoff[]
+
+  @@unique([projectId, versionNumber])
+  @@map("project_versions")
+}
+
+enum VersionStatus {
+  PENDING      // Submitted, awaiting signoff (in-progress projects)
+  APPROVED     // Signed off by all parties
+  DEFERRED     // Deferred to next phase
+  SELF_APPROVED // Approved by consultant (open projects only)
+}
+
+// Tracks who has signed off on a version
+model VersionSignoff {
+  id          String    @id @default(cuid())
+  signedAt    DateTime  @default(now())
+  role        Role
+
+  versionId   String
+  version     ProjectVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+
+  @@unique([versionId, userId])
+  @@map("version_signoffs")
+}
+
+// ─────────────────────────────────────────────
+// MILESTONES
+// ─────────────────────────────────────────────
+
+model Milestone {
+  id          String    @id @default(cuid())
+  title       String
+  deadline    DateTime
+  isComplete  Boolean   @default(false)
+  order       Int       @default(0)
+  phaseNumber Int       @default(1)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("milestones")
+}
+
+// ─────────────────────────────────────────────
+// PHASES
+// ─────────────────────────────────────────────
+
+enum PhaseStatus {
+  ACTIVE
+  COMPLETE
+  UPCOMING
+}
+
+model ProjectPhase {
+  id          String      @id @default(cuid())
+  phaseNumber Int
+  title       String      @default("")
+  status      PhaseStatus @default(UPCOMING)
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  projectId   String
+  project     Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, phaseNumber])
+  @@map("project_phases")
+}
+
+// ─────────────────────────────────────────────
+// WORK REQUESTS & ASSIGNMENT
+// ─────────────────────────────────────────────
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model WorkRequest {
+  id          String        @id @default(cuid())
+  message     String?
+  status      RequestStatus @default(PENDING)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  projectId   String
+  project     Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  learnerId   String
+  learner     User          @relation("LearnerRequests", fields: [learnerId], references: [id])
+
+  @@unique([projectId, learnerId])
+  @@map("work_requests")
+}
+
+model ProjectAssignee {
+  id          String    @id @default(cuid())
+  assignedAt  DateTime  @default(now())
+
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  learnerId   String
+  learner     User      @relation("AssignedLearner", fields: [learnerId], references: [id])
+
+  @@unique([projectId, learnerId])
+  @@map("project_assignees")
+}
+
+// ─────────────────────────────────────────────
+// COMMENTS
+// ─────────────────────────────────────────────
+
+model Comment {
+  id          String    @id @default(cuid())
+  body        String    @db.Text
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  isEdited    Boolean   @default(false)
+
+  // Optional: thread support
+  parentId    String?
+  parent      Comment?  @relation("CommentThread", fields: [parentId], references: [id])
+  replies     Comment[] @relation("CommentThread")
+
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  authorId    String
+  author      User      @relation(fields: [authorId], references: [id])
+
+  @@map("comments")
+}
+
+// ─────────────────────────────────────────────
+// NOTIFICATIONS
+// ─────────────────────────────────────────────
+
+enum NotificationType {
+  WORK_REQUEST_RECEIVED
+  WORK_REQUEST_APPROVED
+  WORK_REQUEST_REJECTED
+  VERSION_SUBMITTED
+  VERSION_APPROVED
+  VERSION_DEFERRED
+  PROJECT_COMPLETE
+  COMMENT_ADDED
+}
+
+model Notification {
+  id          String           @id @default(cuid())
+  type        NotificationType
+  title       String
+  body        String
+  isRead      Boolean          @default(false)
+  link        String?
+  createdAt   DateTime         @default(now())
+
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+// ─────────────────────────────────────────────
+// USAGE ANALYTICS
+// ─────────────────────────────────────────────
+
+model UsageEvent {
+  id          String    @id @default(cuid())
+  action      String    // e.g. "page_view", "button_click", "form_submit", "editor_edit"
+  entity      String?   // e.g. "project", "comment", "milestone"
+  entityId    String?   // ID of the entity
+  metadata    Json?     // Any extra context (field name, old/new value, etc.)
+  sessionId   String?
+  ipHash      String?   // Hashed IP for privacy
+  userAgent   String?
+  createdAt   DateTime  @default(now())
+
+  userId      String?
+  user        User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  projectId   String?
+  project     Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@map("usage_events")
+}

@@ -1,0 +1,146 @@
+/* src/styles/globals.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap');
+
+:root {
+  --font-sans: 'DM Sans', system-ui, sans-serif;
+  --font-display: 'DM Sans', system-ui, sans-serif;
+  --font-mono: 'DM Mono', monospace;
+}
+
+@layer base {
+  * {
+    @apply box-border;
+  }
+
+  html {
+    @apply antialiased;
+    font-family: var(--font-sans);
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-surface-50 text-surface-900 min-h-screen;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    @apply w-1.5 h-1.5;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-surface-300 rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-surface-400;
+  }
+
+  /* Focus ring global */
+  :focus-visible {
+    @apply outline-none ring-2 ring-brand-500 ring-offset-2;
+  }
+
+  /* Selection */
+  ::selection {
+    @apply bg-brand-100 text-brand-900;
+  }
+}
+
+@layer components {
+  /* Page transition animation */
+  .page-enter {
+    @apply animate-fade-in;
+  }
+
+  /* Sidebar active item */
+  .nav-item-active {
+    @apply bg-brand-50 text-brand-700 font-medium;
+  }
+
+  .nav-item {
+    @apply text-surface-600 hover:bg-surface-100 hover:text-surface-900;
+  }
+
+  /* Tiptap editor styles */
+  .tiptap-editor .ProseMirror {
+    @apply outline-none min-h-[200px] text-surface-900;
+  }
+
+  .tiptap-editor .ProseMirror h1 {
+    @apply text-2xl font-bold text-surface-900 mt-6 mb-3;
+  }
+  .tiptap-editor .ProseMirror h2 {
+    @apply text-xl font-semibold text-surface-900 mt-5 mb-2;
+  }
+  .tiptap-editor .ProseMirror h3 {
+    @apply text-lg font-semibold text-surface-800 mt-4 mb-2;
+  }
+
+  .tiptap-editor .ProseMirror p {
+    @apply text-surface-700 leading-relaxed mb-3;
+  }
+
+  .tiptap-editor .ProseMirror ul,
+  .tiptap-editor .ProseMirror ol {
+    @apply pl-6 mb-3 text-surface-700;
+  }
+
+  .tiptap-editor .ProseMirror ul {
+    @apply list-disc;
+  }
+
+  .tiptap-editor .ProseMirror ol {
+    @apply list-decimal;
+  }
+
+  .tiptap-editor .ProseMirror li {
+    @apply mb-1;
+  }
+
+  .tiptap-editor .ProseMirror strong {
+    @apply font-semibold text-surface-900;
+  }
+
+  .tiptap-editor .ProseMirror em {
+    @apply italic;
+  }
+
+  .tiptap-editor .ProseMirror blockquote {
+    @apply border-l-4 border-brand-300 pl-4 my-4 text-surface-600 italic;
+  }
+
+  .tiptap-editor .ProseMirror code {
+    @apply font-mono text-sm bg-surface-100 rounded px-1.5 py-0.5 text-surface-800;
+  }
+
+  .tiptap-editor .ProseMirror pre {
+    @apply font-mono text-sm bg-surface-900 text-surface-100 rounded-lg p-4 my-4 overflow-x-auto;
+  }
+
+  .tiptap-editor .ProseMirror img {
+    @apply max-w-full rounded-lg my-4 shadow-card;
+  }
+
+  .tiptap-editor .ProseMirror .ProseMirror-selectednode {
+    @apply outline-2 outline-brand-500 outline-offset-2;
+  }
+
+  .tiptap-editor .ProseMirror p.is-editor-empty:first-child::before {
+    @apply text-surface-400 pointer-events-none float-left h-0;
+    content: attr(data-placeholder);
+  }
+
+  /* Diff highlight styles */
+  .diff-added {
+    @apply bg-success/20 text-success-dark rounded px-0.5;
+  }
+
+  .diff-removed {
+    @apply bg-danger/20 text-danger-dark line-through rounded px-0.5;
+  }
+}
