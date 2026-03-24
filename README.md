@@ -140,13 +140,15 @@ prisma/
 ---
 
 ## Completed
-| Phase | What gets added |
+| Phase | What got added |
 |---|---|
 | Phase 1 | Project creation form — rich text, images, milestones, submit |
 | Phase 2 | Project list + detail view for consultant |
 | Phase 3 | Edit + version diffing + highlighted changes |
 
 ## Coming next
+| Phase | What gets added |
+|---|---|
 | Phase 4 | Learner project search and discovery |
 | Phase 5 | Work requests + approval + state transitions |
 | Phase 6 | Signoff flow for in-progress changes |
