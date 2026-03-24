@@ -5,8 +5,8 @@ import { Providers } from "./providers";
 
 export const metadata: Metadata = {
   title: {
-    default: "Kaliyuva LMS",
-    template: "%s | Kaliyuva LMS",
+    default: "KaliYUVA LMS",
+    template: "%s | KaliYUVA LMS",
   },
   description: "A platform for project-based learning — connecting consultants and learners.",
 };

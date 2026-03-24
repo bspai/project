@@ -63,7 +63,7 @@ export default function LoginPage() {
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-brand-500 shadow-lift mb-4">
             <BookOpen className="w-7 h-7 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-white">Kaliyuva LMS</h1>
+          <h1 className="text-2xl font-bold text-white">KaliYUVA LMS</h1>
           <p className="text-brand-300 text-sm mt-1">Project-based learning platform</p>
         </div>
 

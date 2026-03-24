@@ -92,7 +92,7 @@ export function AppShell({ user, children }: AppShellProps) {
             <BookOpen className="w-4 h-4 text-white" />
           </div>
           <div>
-            <span className="font-bold text-surface-900 text-sm">Kaliyuva</span>
+            <span className="font-bold text-surface-900 text-sm">KaliYUVA</span>
             <span className="block text-xs text-surface-400">LMS Platform</span>
           </div>
           <button
