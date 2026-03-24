@@ -6,9 +6,10 @@ import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
 import TextAlign from "@tiptap/extension-text-align";
 import Underline from "@tiptap/extension-underline";
+import { JsonValue } from "@prisma/client/runtime/library";
 
 interface RichTextViewerProps {
-  content: Record<string, unknown>;
+  content: JsonValue;
   className?: string;
 }
 
@@ -23,7 +24,7 @@ export function RichTextViewer({ content, className }: RichTextViewerProps) {
       TextAlign.configure({ types: ["heading", "paragraph"] }),
       Underline,
     ],
-    content,
+    content:  content as any,
     editable: false,
   });
 

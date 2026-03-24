@@ -27,10 +27,11 @@ import {
   Quote,
 } from "lucide-react";
 import { cn } from "@/modules/shared/utils";
+import { JsonValue } from "@prisma/client/runtime/library";
 
 interface RichTextEditorProps {
-  value?: Record<string, unknown>;
-  onChange?: (json: Record<string, unknown>, text: string) => void;
+  value?: JsonValue;
+  onChange?: (json: JsonValue, text: string) => void;
   placeholder?: string;
   disabled?: boolean;
   error?: string;
@@ -61,11 +62,11 @@ export function RichTextEditor({
       Underline,
       Placeholder.configure({ placeholder }),
     ],
-    content: value && Object.keys(value).length > 0 ? value : undefined,
+    content: value && Object.keys(value).length > 0 ? (value as any) : undefined,
     editable: !disabled,
     onUpdate({ editor }) {
       onChange?.(
-        editor.getJSON() as Record<string, unknown>,
+        editor.getJSON() as JsonValue,
         editor.getText()
       );
     },
@@ -327,19 +328,30 @@ export function RichTextEditor({
   );
 }
 
+type TiptapNode = {
+  type?: string;
+  attrs?: { [key: string]: JsonValue };
+  content?: JsonValue[];
+} & Record<string, JsonValue>;
+
+function isTiptapNode(node: JsonValue): node is TiptapNode {
+  return node !== null && typeof node === "object" && !Array.isArray(node);
+}
+
 // Helper: walk Tiptap JSON and replace a base64 src with a URL
 function replaceBase64InJson(
-  node: Record<string, unknown>,
+  node: JsonValue,
   base64: string,
   url: string
 ) {
-  if (node.type === "image" && (node.attrs as Record<string, unknown>)?.src === base64) {
-    (node.attrs as Record<string, unknown>).src = url;
+  if (!isTiptapNode(node)) return;
+  if (node.type === "image" && (node.attrs as any)?.src === base64) {
+    (node.attrs as any).src = url;
     return;
   }
   if (Array.isArray(node.content)) {
     for (const child of node.content) {
-      replaceBase64InJson(child as Record<string, unknown>, base64, url);
+      replaceBase64InJson(child as JsonValue, base64, url);
     }
   }
 }

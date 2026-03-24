@@ -15,6 +15,7 @@ import { Card } from "@/modules/shared/components/Card";
 import { useTrackEvent } from "@/modules/shared/hooks/useTrackEvent";
 import type { ProjectFormValues } from "../types";
 import { FileText, Flag, Cpu, Calendar, AlertCircle } from "lucide-react";
+import { JsonValue } from "@prisma/client/runtime/library";
 
 const milestoneSchema = z.object({
   id: z.string(),
@@ -160,7 +161,7 @@ export function ProjectForm({
           control={control}
           render={({ field }) => (
             <RichTextEditor
-              value={field.value as Record<string, unknown>}
+              value={field.value as JsonValue}
               onChange={(json, text) => {
                 field.onChange(json);
                 setValue("descriptionText", text);

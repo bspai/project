@@ -1,4 +1,5 @@
 // src/modules/projects/types/index.ts
+import { JsonValue } from "@prisma/client/runtime/library";
 
 export interface MilestoneInput {
   id: string; // client-side temp id
@@ -12,7 +13,7 @@ export interface ProjectFormValues {
   deadline: string; // ISO date string
   technologies: string[];
   milestones: MilestoneInput[];
-  descriptionJson: Record<string, unknown>; // Tiptap JSON
+  descriptionJson: JsonValue;
   descriptionText: string; // plain text snapshot
 }
 
@@ -21,7 +22,7 @@ export interface ProjectCreatePayload {
   deadline: string;
   technologies: string[];
   milestones: MilestoneInput[];
-  descriptionJson: Record<string, unknown>;
+  descriptionJson: JsonValue;
   descriptionText: string;
 }
 

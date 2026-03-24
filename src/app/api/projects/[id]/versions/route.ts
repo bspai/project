@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth/auth-options";
 import { prisma } from "@/lib/db/prisma";
 import { z } from "zod";
+import { InputJsonValue } from "@prisma/client/runtime/library";
 
 const schema = z.object({
   title: z.string().min(3),
@@ -17,7 +18,7 @@ const schema = z.object({
       phaseNumber: z.number().default(1),
     })
   ),
-  descriptionJson: z.record(z.unknown()),
+  descriptionJson: z.custom<InputJsonValue>((val) => val !== null),
   descriptionText: z.string().min(1),
 });
 
@@ -88,7 +89,7 @@ export async function POST(
         isActive: false,
         status: versionStatus,
         phaseNumber: project.currentPhase,
-        descriptionJson,
+        descriptionJson: descriptionJson as InputJsonValue,
         descriptionText,
       },
     });

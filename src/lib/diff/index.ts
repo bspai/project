@@ -1,5 +1,6 @@
 // src/lib/diff/index.ts
 import { diff_match_patch, DIFF_DELETE, DIFF_INSERT, DIFF_EQUAL } from "diff-match-patch";
+import { JsonValue } from "@prisma/client/runtime/library";
 
 export interface DiffSegment {
   type: "equal" | "insert" | "delete";
@@ -44,11 +45,11 @@ export function diffText(oldText: string, newText: string): DiffSegment[] {
 export function diffProjectVersions(
   oldVersion: {
     descriptionText: string;
-    descriptionJson: Record<string, unknown>;
+    descriptionJson: JsonValue;
   },
   newVersion: {
     descriptionText: string;
-    descriptionJson: Record<string, unknown>;
+    descriptionJson: JsonValue;
   },
   oldMeta: {
     title: string;

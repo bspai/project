@@ -6,6 +6,7 @@ import { Metadata } from "next";
 import Link from "next/link";
 import { ChevronLeft, AlertTriangle } from "lucide-react";
 import { ProjectEditForm } from "@/modules/projects/components/ProjectEditForm";
+import { JsonValue } from "@prisma/client/runtime/library";
 
 export async function generateMetadata({
   params,
@@ -63,7 +64,7 @@ export default async function EditProjectPage({
       phaseNumber: m.phaseNumber,
     })),
     descriptionJson:
-      (activeVersion?.descriptionJson as Record<string, unknown>) ?? {},
+      (activeVersion?.descriptionJson as JsonValue) ?? {},
     descriptionText: activeVersion?.descriptionText ?? "",
   };
 
