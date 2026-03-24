@@ -20,32 +20,18 @@ Project-based learning platform connecting consultants and learners.
 | Forms | React Hook Form + Zod |
 
 ---
-
-## Phase 0 — Setup & Run
+## Setup & Run ( local docker setup )
 
 ### Prerequisites
+- Docker
+- Docker Compose
+- In the project root repo, Copy `.env.example` to `.env.local` and fill in your values
 
-- Node.js 18+
-- PostgreSQL running locally (or a hosted URL)
-- An S3-compatible bucket (AWS S3, Supabase Storage, or Cloudflare R2)
-
----
-
-### 1. Install dependencies
-
+Generate a secret:
 ```bash
-npm install
+openssl rand -base64 32
 ```
-
----
-
-### 2. Configure environment
-
-Copy `.env.example` to `.env.local` and fill in your values:
-
-```bash
-cp .env.example .env.local
-```
+ - configure this value generated to NEXTAUTH_SECRET env variable
 
 ```env
 # Minimum required for Phase 0:
@@ -62,44 +48,32 @@ STORAGE_SECRET_KEY=""
 STORAGE_PUBLIC_URL=""
 ```
 
-Generate a secret:
-```bash
-openssl rand -base64 32
-```
+### Run database and pgadmin
+- docker-compose up db -d
+- docker-compose up pgadmin -d
 
----
+### Check
+- load pgadmin dashboard using URL http://127.0.0.1:5050
+- login with credentials as in docker-componse file
+- connect to plsql server using credential of db in docker-componse file
+- when checking no tables will be visible at this stage
 
-### 3. Create the database
+### Run application
+- docker-compose up app 
 
-```bash
-# Create the database in PostgreSQL first
-createdb lms_platform
+### Check
+- after logs display "✓ Ready in  NNN ms " 
+- Load application using URL http://127.0.0.1:3000
+- login with given credentials will throw error as database does not have these users
 
-# Or via psql:
-psql -U postgres -c "CREATE DATABASE lms_platform;"
-```
-
----
-
-### 4. Run Prisma migrations
-
-```bash
-npm run db:generate   # Generate Prisma client
-npm run db:push       # Push schema to database (dev shortcut)
-```
-
+### Run in another terminal
+- docker exec lms_app npm run db:generate   
+- docker exec lms_app npm run db:push
 For production, use migrations:
 ```bash
 npm run db:migrate    # Creates and applies a migration
 ```
-
----
-
-### 5. Seed the database
-
-```bash
-npm run db:seed
-```
+- docker exec lms_app npm run db:seed
 
 This creates:
 
@@ -113,33 +87,9 @@ And one sample project.
 
 ---
 
-### 6. Run the dev server
-
-```bash
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000).
-
----
-
-## Phase 0 — What to Test
-
-1. **Visit** `http://localhost:3000` → redirects to `/login`
-2. **Login as consultant** → redirected to `/consultant/dashboard`
-   - See stat cards (0/0/0 initially, or seeded project shows up)
-   - Sidebar shows: Dashboard, My Projects
-3. **Sign out** → back to login
-4. **Login as learner** → redirected to `/learner/dashboard`
-   - Sidebar shows: Dashboard, Browse Projects
-5. **Try accessing** `/consultant/dashboard` while logged in as learner → `/unauthorized`
-6. **Check DB** with Prisma Studio:
-   ```bash
-   npm run db:studio
-   ```
-   Verify: `users`, `projects`, `project_versions`, `milestones`, `project_phases` tables are populated.
-
----
+### Check
+- Load application using URL http://127.0.0.1:3000
+- It will show Dashboard for logged in user
 
 ## Folder Structure
 
@@ -189,13 +139,14 @@ prisma/
 
 ---
 
-## Coming Next
-
+## Completed
 | Phase | What gets added |
 |---|---|
 | Phase 1 | Project creation form — rich text, images, milestones, submit |
 | Phase 2 | Project list + detail view for consultant |
 | Phase 3 | Edit + version diffing + highlighted changes |
+
+## Coming next
 | Phase 4 | Learner project search and discovery |
 | Phase 5 | Work requests + approval + state transitions |
 | Phase 6 | Signoff flow for in-progress changes |
