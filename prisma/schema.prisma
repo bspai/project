@@ -7,6 +7,8 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  // for prod migrations
+  // directUrl = env("DIRECT__URL")
 }
 
 // ─────────────────────────────────────────────
@@ -93,7 +95,9 @@ model ProjectVersion {
   phaseNumber     Int       @default(1)
   // Status of this version
   status          VersionStatus @default(PENDING)
-
+  // Snapshot of project metadata at time of version submission
+  // Used for diffing project metadata changes
+  metaSnapshot     Json?     // Stores: { title, deadline, technologies, milestones }
   projectId       String
   project         Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
