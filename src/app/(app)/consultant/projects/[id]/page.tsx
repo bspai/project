@@ -212,10 +212,9 @@ export default async function ConsultantProjectDetailPage({
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* ── Left column ── */}
-        <div className="lg:col-span-2 space-y-6">
-
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 ">
+        {/* ── Center column: Description, Version History, Comments ── */}
+        <div className="space-y-6 lg:col-span-3">
           {/* Description — always shows the ACTIVE (approved) version */}
           <Card padding="md">
             <CardHeader>
@@ -240,57 +239,56 @@ export default async function ConsultantProjectDetailPage({
             )}
           </Card>
 
-          {/* Version history */}
-          {allVersions.length > 1 && (
-            <Card padding="none">
-              <div className="px-6 py-4 border-b border-surface-100">
-                <div className="flex items-center gap-2">
-                  <GitBranch className="w-4 h-4 text-surface-400" />
-                  <CardTitle>Version History</CardTitle>
-                  <Badge variant="default">{allVersions.length}</Badge>
-                </div>
+          {/* ── Left column: Milestones and Phases ── */}
+          <Card padding="md">
+            <div className="flex items-center gap-2 mb-3">
+              <Flag className="w-4 h-4 text-surface-400" />
+              <CardTitle>Milestones</CardTitle>
+              <Badge variant="default">{project.milestones.length}</Badge>
+            </div>
+            <MilestoneList
+              milestones={project.milestones}
+              showPhase={project.phases.length > 1}
+            />
+          </Card>
+
+          {project.phases.length > 1 && (
+            <Card padding="md">
+              <div className="flex items-center gap-2 mb-3">
+                <GitBranch className="w-4 h-4 text-surface-400" />
+                <CardTitle>Phases</CardTitle>
               </div>
-              <div className="divide-y divide-surface-100">
-                {allVersions.map((version) => {
-                  const statusCfg =
-                    versionStatusConfig[version.status] ??
-                    versionStatusConfig.PENDING;
-                  return (
+              <div className="space-y-2">
+                {project.phases.map((phase) => (
+                  <div key={phase.id} className="flex items-center gap-3">
                     <div
-                      key={version.id}
-                      className="flex items-center gap-4 px-6 py-3"
+                      className={`w-2 h-2 rounded-full shrink-0 ${phase.status === "ACTIVE"
+                        ? "bg-brand-500"
+                        : phase.status === "COMPLETE"
+                          ? "bg-success"
+                          : "bg-surface-200"
+                        }`}
+                    />
+                    <span className="text-sm text-surface-700 flex-1">
+                      Phase {phase.phaseNumber}
+                      {phase.title ? ` — ${phase.title}` : ""}
+                    </span>
+                    <span
+                      className={`text-xs ${phase.status === "ACTIVE"
+                        ? "text-brand-600 font-medium"
+                        : phase.status === "COMPLETE"
+                          ? "text-success"
+                          : "text-surface-400"
+                        }`}
                     >
-                      <span className="text-sm font-mono font-medium text-surface-700 w-8 shrink-0">
-                        v{version.versionNumber}
-                      </span>
-                      <Badge variant={statusCfg.variant}>
-                        {statusCfg.label}
-                      </Badge>
-                      {version.isActive && (
-                        <Badge variant="info">Current</Badge>
-                      )}
-                      <span className="text-xs text-surface-400">
-                        Phase {version.phaseNumber}
-                      </span>
-                      <div className="flex-1" />
-                      {version.signoffs.length > 0 && (
-                        <div className="flex items-center gap-1">
-                          {version.signoffs.map((s) => (
-                            <Avatar
-                              key={s.id}
-                              name={s.user.name}
-                              size="xs"
-                              className="ring-2 ring-white"
-                            />
-                          ))}
-                        </div>
-                      )}
-                      <span className="text-xs text-surface-400 shrink-0">
-                        {formatRelative(version.submittedAt)}
-                      </span>
-                    </div>
-                  );
-                })}
+                      {phase.status === "ACTIVE"
+                        ? "Active"
+                        : phase.status === "COMPLETE"
+                          ? "Done"
+                          : "Upcoming"}
+                    </span>
+                  </div>
+                ))}
               </div>
             </Card>
           )}
@@ -311,7 +309,7 @@ export default async function ConsultantProjectDetailPage({
         </div>
 
         {/* ── Right sidebar ── */}
-        <div className="space-y-4">
+        <div className="space-y-4 lg:col-span-1">
           <Card padding="md">
             <CardTitle className="mb-4">Project Info</CardTitle>
             <div className="space-y-3">
@@ -419,58 +417,61 @@ export default async function ConsultantProjectDetailPage({
             )}
           </Card>
 
-          <Card padding="md">
-            <div className="flex items-center gap-2 mb-3">
-              <Flag className="w-4 h-4 text-surface-400" />
-              <CardTitle>Milestones</CardTitle>
-              <Badge variant="default">{project.milestones.length}</Badge>
-            </div>
-            <MilestoneList
-              milestones={project.milestones}
-              showPhase={project.phases.length > 1}
-            />
-          </Card>
-
-          {project.phases.length > 1 && (
-            <Card padding="md">
-              <div className="flex items-center gap-2 mb-3">
-                <GitBranch className="w-4 h-4 text-surface-400" />
-                <CardTitle>Phases</CardTitle>
+          {/* Version history */}
+          {allVersions.length > 1 && (
+            <Card padding="none">
+              <div className="px-6 py-4 border-b border-surface-100">
+                <div className="flex items-center gap-2">
+                  <GitBranch className="w-4 h-4 text-surface-400" />
+                  <CardTitle>Version History</CardTitle>
+                  <Badge variant="default">{allVersions.length}</Badge>
+                </div>
               </div>
-              <div className="space-y-2">
-                {project.phases.map((phase) => (
-                  <div key={phase.id} className="flex items-center gap-3">
+              <div className="divide-y divide-surface-100">
+                {allVersions.map((version) => {
+                  const statusCfg =
+                    versionStatusConfig[version.status] ??
+                    versionStatusConfig.PENDING;
+                  return (
                     <div
-                      className={`w-2 h-2 rounded-full shrink-0 ${phase.status === "ACTIVE"
-                          ? "bg-brand-500"
-                          : phase.status === "COMPLETE"
-                            ? "bg-success"
-                            : "bg-surface-200"
-                        }`}
-                    />
-                    <span className="text-sm text-surface-700 flex-1">
-                      Phase {phase.phaseNumber}
-                      {phase.title ? ` — ${phase.title}` : ""}
-                    </span>
-                    <span
-                      className={`text-xs ${phase.status === "ACTIVE"
-                          ? "text-brand-600 font-medium"
-                          : phase.status === "COMPLETE"
-                            ? "text-success"
-                            : "text-surface-400"
-                        }`}
+                      key={version.id}
+                      className="flex items-center gap-4 px-6 py-3"
                     >
-                      {phase.status === "ACTIVE"
-                        ? "Active"
-                        : phase.status === "COMPLETE"
-                          ? "Done"
-                          : "Upcoming"}
-                    </span>
-                  </div>
-                ))}
+                      <span className="text-sm font-mono font-medium text-surface-700 w-8 shrink-0">
+                        v{version.versionNumber}
+                      </span>
+                      <Badge variant={statusCfg.variant}>
+                        {statusCfg.label}
+                      </Badge>
+                      {version.isActive && (
+                        <Badge variant="info">Current</Badge>
+                      )}
+                      {/* <span className="text-xs text-surface-400">
+                        Phase {version.phaseNumber}
+                      </span>
+                      <div className="flex-1" />
+                      {version.signoffs.length > 0 && (
+                        <div className="flex items-center gap-1">
+                          {version.signoffs.map((s) => (
+                            <Avatar
+                              key={s.id}
+                              name={s.user.name}
+                              size="xs"
+                              className="ring-2 ring-white"
+                            />
+                          ))}
+                        </div>
+                      )}
+                      <span className="text-xs text-surface-400 shrink-0">
+                        {formatRelative(version.submittedAt)}
+                      </span> */}
+                    </div>
+                  );
+                })}
               </div>
             </Card>
           )}
+
         </div>
       </div>
     </div>

@@ -13,13 +13,14 @@ services:
       - /app/node_modules
       - /app/.next
     environment:
+      #- DATABASE_URL=postgresql://neondb_owner:npg_mJDo8FWO0ktn@ep-muddy-rice-a1mjqoe7-pooler.ap-southeast-1.aws.neon.tech/lms_platform?sslmode=require&channel_binding=require
       - DATABASE_URL=postgresql://postgres:password@db:5432/lms_platform
       # Note: Make sure NEXTAUTH_SECRET and NEXTAUTH_URL are set for NextAuth to work
       - NEXTAUTH_URL=http://localhost:3000
     depends_on:
       db:
         condition: service_healthy
-    command: sh -c "npm run dev"
+    command: sh -c "npx prisma generate && npm run dev"
 
   db:
     image: postgres:15-alpine
