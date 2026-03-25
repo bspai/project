@@ -9,3 +9,7 @@ export { ProjectEditForm } from "./ProjectEditForm";
 export { ProjectStatusBadge } from "./ProjectStatusBadge";
 export { DiffViewer } from "./DiffViewer";
 export { VersionApprovalBar } from "./VersionApprovalBar";
+export { ProjectCard } from "./ProjectCard";
+export { ProjectSearchBar } from "./ProjectSearchBar";
+export { ProjectBrowseClient } from "./ProjectBrowseClient";
+export { WorkRequestButton } from "./WorkRequestButton";
