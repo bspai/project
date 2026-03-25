@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth/auth-options";
 import { prisma } from "@/lib/db/prisma";
 import { z } from "zod";
+import { InputJsonValue } from "@prisma/client/runtime/library";
 
 const milestoneSchema = z.object({
   id: z.string(),
@@ -17,7 +18,7 @@ const createSchema = z.object({
   deadline: z.string().min(1),
   technologies: z.array(z.string()).min(1),
   milestones: z.array(milestoneSchema),
-  descriptionJson: z.record(z.unknown()),
+  descriptionJson: z.custom<InputJsonValue>((val) => val !== null),
   descriptionText: z.string().min(1),
 });
 
@@ -73,7 +74,7 @@ export async function POST(req: NextRequest) {
       isActive: true,
       status: "SELF_APPROVED",
       phaseNumber: 1,
-      descriptionJson,
+      descriptionJson: descriptionJson as InputJsonValue,
       descriptionText,
       metaSnapshot: {
         title,

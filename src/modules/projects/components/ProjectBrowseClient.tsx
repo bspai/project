@@ -18,6 +18,7 @@ interface BrowseProject {
   creator: { id: string; name: string; avatar?: string | null };
   activeVersion: { descriptionText: string } | null;
   _count: { milestones: number; workRequests: number };
+  [key: string]: unknown;
 }
 
 interface ProjectBrowseClientProps {
