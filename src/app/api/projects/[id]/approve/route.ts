@@ -11,15 +11,17 @@ const schema = z.object({
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id: projectId } = await params;
+
   const session = await getServerSession(authOptions);
   if (!session || session.user.role !== "CONSULTANT") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const project = await prisma.project.findUnique({
-    where: { id: params.id },
+    where: { id: projectId },
   });
 
   if (!project) {
@@ -29,13 +31,9 @@ export async function POST(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  // Self-approval only allowed when project is OPEN
   if (project.status !== "OPEN") {
     return NextResponse.json(
-      {
-        error:
-          "Self-approval is only allowed when the project is Open. In-progress changes require mutual signoff.",
-      },
+      { error: "Self-approval is only allowed when the project is Open. In-progress changes require mutual signoff." },
       { status: 400 }
     );
   }
@@ -52,7 +50,7 @@ export async function POST(
     where: { id: versionId },
   });
 
-  if (!version || version.projectId !== params.id) {
+  if (!version || version.projectId !== projectId) {
     return NextResponse.json({ error: "Version not found" }, { status: 404 });
   }
   if (version.status !== "PENDING") {
@@ -62,30 +60,61 @@ export async function POST(
     );
   }
 
+  // Read the proposed changes stored in metaSnapshot at submission time
+  const snap = version.metaSnapshot as {
+    title: string;
+    deadline: string;
+    technologies: string[];
+    milestones: Array<{ title: string; deadline: string; phaseNumber: number }>;
+  } | null;
+
   await prisma.$transaction(async (tx) => {
-    // Deactivate all other versions
+    // 1. Deactivate all versions
     await tx.projectVersion.updateMany({
-      where: { projectId: params.id },
+      where: { projectId },
       data: { isActive: false },
     });
 
-    // Activate and approve this version
+    // 2. Activate and approve the pending version
     await tx.projectVersion.update({
       where: { id: versionId },
-      data: {
-        isActive: true,
-        status: "SELF_APPROVED",
-      },
+      data: { isActive: true, status: "SELF_APPROVED" },
     });
 
-    // Record the signoff
+    // 3. Commit metaSnapshot to the project — title, deadline, technologies
+    if (snap) {
+      await tx.project.update({
+        where: { id: projectId },
+        data: {
+          title: snap.title,
+          deadline: new Date(snap.deadline),
+          technologies: snap.technologies,
+          updatedAt: new Date(),
+        },
+      });
+
+      // 4. Replace milestones with the approved set
+      await tx.milestone.deleteMany({
+        where: { projectId, phaseNumber: project.currentPhase },
+      });
+
+      if (snap.milestones.length > 0) {
+        await tx.milestone.createMany({
+          data: snap.milestones.map((m, i) => ({
+            title: m.title,
+            deadline: new Date(m.deadline),
+            order: i + 1,
+            phaseNumber: m.phaseNumber ?? project.currentPhase,
+            projectId,
+          })),
+        });
+      }
+    }
+
+    // 5. Record the signoff
     await tx.versionSignoff.upsert({
       where: { versionId_userId: { versionId, userId: session.user.id } },
-      create: {
-        versionId,
-        userId: session.user.id,
-        role: session.user.role,
-      },
+      create: { versionId, userId: session.user.id, role: session.user.role },
       update: {},
     });
   });

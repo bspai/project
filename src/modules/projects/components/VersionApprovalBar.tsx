@@ -2,7 +2,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { CheckCircle2, ChevronDown, ChevronUp, GitBranch, AlertTriangle } from "lucide-react";
 import { Button } from "@/modules/shared/components/Button";
 import { DiffViewer } from "./DiffViewer";
@@ -24,13 +23,12 @@ export function VersionApprovalBar({
   diff,
   projectStatus,
 }: VersionApprovalBarProps) {
-  const router = useRouter();
   const { trackEvent } = useTrackEvent();
   const [expanded, setExpanded] = useState(true);
   const [isApproving, setIsApproving] = useState(false);
+  const [approved, setApproved] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Self-approval only available when project is OPEN
   const canSelfApprove = projectStatus === "OPEN";
 
   async function handleApprove() {
@@ -52,19 +50,40 @@ export function VersionApprovalBar({
         entityId: projectId,
         metadata: { versionNumber: pendingVersionNumber },
       });
-      // Use router.push instead of router.refresh() to guarantee a full
-      // server re-render and avoid stale cached content after approval
-      router.push(`/consultant/projects/${projectId}`);
+      // Show success briefly then hard-navigate.
+      // router.push() to the same URL is a no-op in Next.js App Router.
+      // router.refresh() does not reliably bust the RSC payload cache.
+      // window.location.href is the only guaranteed full server re-render.
+      setApproved(true);
+      setTimeout(() => {
+        window.location.href = `/consultant/projects/${projectId}`;
+      }, 0);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
       setIsApproving(false);
     }
   }
 
+  // Success banner shown while redirect is in flight
+  if (approved) {
+    return (
+      <div className="rounded-xl border-2 border-success/30 bg-success/5 px-5 py-4 flex items-center gap-3">
+        <div className="w-8 h-8 rounded-lg bg-success/20 flex items-center justify-center shrink-0">
+          <CheckCircle2 className="w-4 h-4 text-success" />
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-success-dark">
+            Version {pendingVersionNumber} approved
+          </p>
+          <p className="text-xs text-surface-500 mt-0.5">Refreshing page…</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-xl border-2 border-warning/40 bg-warning/5 overflow-hidden">
-      {/* Bar header */}
+      {/* Header */}
       <div className="flex items-center gap-3 px-5 py-3.5">
         <div className="w-8 h-8 rounded-lg bg-warning/20 flex items-center justify-center shrink-0">
           <GitBranch className="w-4 h-4 text-warning-dark" />
@@ -95,11 +114,7 @@ export function VersionApprovalBar({
             onClick={() => setExpanded(!expanded)}
             className="w-8 h-8 rounded-lg flex items-center justify-center text-surface-500 hover:bg-warning/10 transition-colors"
           >
-            {expanded ? (
-              <ChevronUp className="w-4 h-4" />
-            ) : (
-              <ChevronDown className="w-4 h-4" />
-            )}
+            {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </button>
         </div>
       </div>

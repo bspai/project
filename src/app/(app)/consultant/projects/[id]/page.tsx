@@ -107,16 +107,16 @@ export default async function ConsultantProjectDetailPage({
     } | null;
 
     const oldMeta = {
-      title:        oldSnap?.title        ?? project.title,
-      deadline:     oldSnap?.deadline     ?? project.deadline,
+      title: oldSnap?.title ?? project.title,
+      deadline: oldSnap?.deadline ?? project.deadline,
       technologies: oldSnap?.technologies ?? project.technologies,
-      milestones:   oldSnap?.milestones   ?? project.milestones,
+      milestones: oldSnap?.milestones ?? project.milestones,
     };
     const newMeta = {
-      title:        newSnap?.title        ?? project.title,
-      deadline:     newSnap?.deadline     ?? project.deadline,
+      title: newSnap?.title ?? project.title,
+      deadline: newSnap?.deadline ?? project.deadline,
       technologies: newSnap?.technologies ?? project.technologies,
-      milestones:   newSnap?.milestones   ?? project.milestones,
+      milestones: newSnap?.milestones ?? project.milestones,
     };
 
     return diffProjectVersions(
@@ -139,9 +139,9 @@ export default async function ConsultantProjectDetailPage({
     { variant: "success" | "warning" | "info" | "default"; label: string }
   > = {
     SELF_APPROVED: { variant: "success", label: "Approved" },
-    APPROVED:      { variant: "success", label: "Signed Off" },
-    PENDING:       { variant: "warning", label: "Pending Signoff" },
-    DEFERRED:      { variant: "default", label: "Deferred" },
+    APPROVED: { variant: "success", label: "Signed Off" },
+    PENDING: { variant: "warning", label: "Pending Signoff" },
+    DEFERRED: { variant: "default", label: "Deferred" },
   };
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -441,32 +441,30 @@ export default async function ConsultantProjectDetailPage({
                 {project.phases.map((phase) => (
                   <div key={phase.id} className="flex items-center gap-3">
                     <div
-                      className={`w-2 h-2 rounded-full shrink-0 ${
-                        phase.status === "ACTIVE"
+                      className={`w-2 h-2 rounded-full shrink-0 ${phase.status === "ACTIVE"
                           ? "bg-brand-500"
                           : phase.status === "COMPLETE"
-                          ? "bg-success"
-                          : "bg-surface-200"
-                      }`}
+                            ? "bg-success"
+                            : "bg-surface-200"
+                        }`}
                     />
                     <span className="text-sm text-surface-700 flex-1">
                       Phase {phase.phaseNumber}
                       {phase.title ? ` — ${phase.title}` : ""}
                     </span>
                     <span
-                      className={`text-xs ${
-                        phase.status === "ACTIVE"
+                      className={`text-xs ${phase.status === "ACTIVE"
                           ? "text-brand-600 font-medium"
                           : phase.status === "COMPLETE"
-                          ? "text-success"
-                          : "text-surface-400"
-                      }`}
+                            ? "text-success"
+                            : "text-surface-400"
+                        }`}
                     >
                       {phase.status === "ACTIVE"
                         ? "Active"
                         : phase.status === "COMPLETE"
-                        ? "Done"
-                        : "Upcoming"}
+                          ? "Done"
+                          : "Upcoming"}
                     </span>
                   </div>
                 ))}

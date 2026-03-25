@@ -8,4 +8,4 @@ export { ProjectForm } from "./ProjectForm";
 export { ProjectEditForm } from "./ProjectEditForm";
 export { ProjectStatusBadge } from "./ProjectStatusBadge";
 export { DiffViewer } from "./DiffViewer";
-export { VersionApprovalBar } from "./VersionApprovalBarOld";
+export { VersionApprovalBar } from "./VersionApprovalBar";
