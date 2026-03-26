@@ -3,18 +3,18 @@ import { requireRole } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
 import { Metadata } from "next";
 import Link from "next/link";
-import { FolderKanban, Plus, Clock, CheckCircle2, CircleDot } from "lucide-react";
+import { FolderKanban, Plus, Clock, CheckCircle2, CircleDot, Bell } from "lucide-react";
 import { Card } from "@/modules/shared/components/Card";
 import { Button } from "@/modules/shared/components/Button";
 import { Badge } from "@/modules/shared/components/Badge";
-import { formatDate, statusColor, statusLabel } from "@/modules/shared/utils";
+import { formatDate, statusLabel } from "@/modules/shared/utils";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
 export default async function ConsultantDashboardPage() {
   const session = await requireRole("CONSULTANT");
 
-  const [projects, stats] = await Promise.all([
+  const [projects, stats, pendingRequestCount] = await Promise.all([
     prisma.project.findMany({
       where: { creatorId: session.user.id },
       orderBy: { updatedAt: "desc" },
@@ -29,14 +29,21 @@ export default async function ConsultantDashboardPage() {
       where: { creatorId: session.user.id },
       _count: true,
     }),
+    // Count pending work requests across all consultant's OPEN projects
+    prisma.workRequest.count({
+      where: {
+        status: "PENDING",
+        project: { creatorId: session.user.id, status: "OPEN" },
+      },
+    }),
   ]);
 
   const statMap = Object.fromEntries(stats.map((s) => [s.status, s._count]));
 
   const statCards = [
-    { label: "Open",        value: statMap.OPEN ?? 0,        icon: <CircleDot className="w-5 h-5" />,      color: "text-info",    bg: "bg-info/10" },
-    { label: "In Progress", value: statMap.IN_PROGRESS ?? 0, icon: <Clock className="w-5 h-5" />,          color: "text-warning", bg: "bg-warning/10" },
-    { label: "Completed",   value: statMap.DONE ?? 0,        icon: <CheckCircle2 className="w-5 h-5" />,   color: "text-success", bg: "bg-success/10" },
+    { label: "Open",        value: statMap.OPEN ?? 0,        icon: <CircleDot className="w-5 h-5" />,    color: "text-info",    bg: "bg-info/10" },
+    { label: "In Progress", value: statMap.IN_PROGRESS ?? 0, icon: <Clock className="w-5 h-5" />,        color: "text-warning", bg: "bg-warning/10" },
+    { label: "Completed",   value: statMap.DONE ?? 0,        icon: <CheckCircle2 className="w-5 h-5" />, color: "text-success", bg: "bg-success/10" },
   ];
 
   return (
@@ -48,13 +55,28 @@ export default async function ConsultantDashboardPage() {
             Welcome back, {session.user.name.split(" ")[0]} 👋
           </h1>
           <p className="text-surface-500 text-sm mt-0.5">
-            Here&apos;s an overview of your projects.
+            {pendingRequestCount > 0
+              ? `You have ${pendingRequestCount} pending work request${pendingRequestCount > 1 ? "s" : ""} to review.`
+              : "Here's an overview of your projects."}
           </p>
         </div>
         <Link href="/consultant/projects/new">
           <Button leftIcon={<Plus className="w-4 h-4" />}>New Project</Button>
         </Link>
       </div>
+
+      {/* Pending requests alert */}
+      {pendingRequestCount > 0 && (
+        <div className="flex items-center gap-3 bg-brand-50 border border-brand-200 rounded-xl px-4 py-3 mb-6">
+          <Bell className="w-4 h-4 text-brand-600 shrink-0" />
+          <p className="text-sm text-brand-800 flex-1">
+            <span className="font-semibold">{pendingRequestCount} learner{pendingRequestCount > 1 ? "s" : ""}</span> requested to work on your projects.
+          </p>
+          <Link href="/consultant/projects">
+            <Button size="sm" variant="outline">Review</Button>
+          </Link>
+        </div>
+      )}
 
       {/* Stat cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
@@ -105,7 +127,12 @@ export default async function ConsultantDashboardPage() {
                 className="flex items-center gap-4 px-6 py-4 hover:bg-surface-50 transition-colors"
               >
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-surface-900 truncate">{project.title}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium text-surface-900 truncate">{project.title}</p>
+                    {project._count.workRequests > 0 && project.status === "OPEN" && (
+                      <Badge variant="info">{project._count.workRequests} requests</Badge>
+                    )}
+                  </div>
                   <p className="text-sm text-surface-500 mt-0.5">
                     Due {formatDate(project.deadline)} · {project._count.comments} comments
                   </p>
