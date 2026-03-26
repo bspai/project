@@ -66,7 +66,13 @@ export default async function LearnerProjectDetailPage({
   const isAssigned = !!assignee;
   const requestStatus = (existingRequest?.status ?? null) as
     | "PENDING" | "APPROVED" | "REJECTED" | null;
-  const canRequest = project.status === "OPEN";
+
+  // Show request button if:
+  // - project is OPEN (can request)
+  // - learner is assigned (show assigned state)
+  // - learner already sent a request (show its status)
+  const showRequestArea =
+    project.status === "OPEN" || isAssigned || existingRequest !== null;
 
   return (
     <div className="p-6 lg:p-8 max-w-6xl mx-auto">
@@ -128,15 +134,15 @@ export default async function LearnerProjectDetailPage({
 
         {/* Right sidebar */}
         <div className="space-y-4">
-          {/* Request button */}
-          {(canRequest || isAssigned) && (
+          {/* Request / status area */}
+          {showRequestArea && (
             <Card padding="md">
               <WorkRequestButton
                 projectId={projectId}
                 requestStatus={requestStatus}
                 isAssigned={isAssigned}
               />
-              {!existingRequest && !isAssigned && canRequest && (
+              {!existingRequest && !isAssigned && project.status === "OPEN" && (
                 <p className="text-xs text-surface-400 text-center mt-3">
                   The consultant will review your request.
                 </p>

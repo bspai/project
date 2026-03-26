@@ -13,3 +13,4 @@ export { ProjectCard } from "./ProjectCard";
 export { ProjectSearchBar } from "./ProjectSearchBar";
 export { ProjectBrowseClient } from "./ProjectBrowseClient";
 export { WorkRequestButton } from "./WorkRequestButton";
+export { WorkRequestsPanel } from "./WorkRequestsPanel";
