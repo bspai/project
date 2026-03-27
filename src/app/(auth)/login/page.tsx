@@ -122,6 +122,7 @@ export default function LoginPage() {
           <div className="mt-6 pt-5 border-t border-white/10">
             <p className="text-xs text-brand-400 font-medium mb-2">Development accounts</p>
             <div className="space-y-1 text-xs text-white/50">
+              <p>[On local Setup]</p>
               <p>consultant@kaliyuva.com / password123</p>
               <p>learner@kaliyuva.com &nbsp;&nbsp;/ password123</p>
             </div>
