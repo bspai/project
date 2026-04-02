@@ -15,8 +15,12 @@ import { RichTextViewer } from "@/modules/projects/components/RichTextViewer";
 import { MilestoneList } from "@/modules/projects/components/MilestoneList";
 import { ProjectStatusBadge } from "@/modules/projects/components/ProjectStatusBadge";
 import { WorkRequestButton } from "@/modules/projects/components/WorkRequestButton";
+import { VersionApprovalBar } from "@/modules/projects/components/VersionApprovalBar";
 import { formatDate, formatRelative } from "@/modules/shared/utils";
+import { diffProjectVersions } from "@/lib/diff";
 import { JsonValue } from "@prisma/client/runtime/library";
+
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,
@@ -45,7 +49,14 @@ export default async function LearnerProjectDetailPage({
       creator: { select: { id: true, name: true, email: true, avatar: true } },
       milestones: { orderBy: { order: "asc" } },
       phases: { orderBy: { phaseNumber: "asc" } },
-      versions: { where: { isActive: true }, take: 1 },
+      versions: {
+        orderBy: { versionNumber: "desc" },
+        include: {
+          signoffs: {
+            include: { user: { select: { id: true, name: true, role: true } } },
+          },
+        },
+      },
       _count: { select: { workRequests: true, comments: true } },
     },
   });
@@ -62,10 +73,53 @@ export default async function LearnerProjectDetailPage({
     }),
   ]);
 
-  const activeVersion = project.versions[0];
+  const activeVersion = project.versions.find((v) => v.isActive);
+  const pendingVersion = project.versions.find((v) => v.status === "PENDING");
   const isAssigned = !!assignee;
   const requestStatus = (existingRequest?.status ?? null) as
     | "PENDING" | "APPROVED" | "REJECTED" | null;
+
+  // Diff computation for assigned learners on in-progress projects
+  const diff = (() => {
+    if (!isAssigned || !pendingVersion || !activeVersion) return null;
+    const oldSnap = activeVersion.metaSnapshot as {
+      title: string; deadline: string; technologies: string[];
+      milestones: Array<{ title: string; deadline: string }>;
+    } | null;
+    const newSnap = pendingVersion.metaSnapshot as {
+      title: string; deadline: string; technologies: string[];
+      milestones: Array<{ title: string; deadline: string }>;
+    } | null;
+    return diffProjectVersions(
+      { descriptionText: activeVersion.descriptionText, descriptionJson: activeVersion.descriptionJson as JsonValue },
+      { descriptionText: pendingVersion.descriptionText, descriptionJson: pendingVersion.descriptionJson as JsonValue },
+      {
+        title: oldSnap?.title ?? project.title,
+        deadline: oldSnap?.deadline ?? project.deadline,
+        technologies: oldSnap?.technologies ?? project.technologies,
+        milestones: oldSnap?.milestones ?? project.milestones,
+      },
+      {
+        title: newSnap?.title ?? project.title,
+        deadline: newSnap?.deadline ?? project.deadline,
+        technologies: newSnap?.technologies ?? project.technologies,
+        milestones: newSnap?.milestones ?? project.milestones,
+      }
+    );
+  })();
+
+  // Serialize signoffs for the client component
+  const pendingSignoffs = pendingVersion
+    ? pendingVersion.signoffs.map((s) => ({
+        userId: s.user.id,
+        userName: s.user.name,
+        role: s.user.role,
+      }))
+    : [];
+
+  const hasNextPhase = project.phases.some(
+    (p) => p.phaseNumber === project.currentPhase + 1
+  );
 
   // Show request button if:
   // - project is OPEN (can request)
@@ -93,12 +147,39 @@ export default async function LearnerProjectDetailPage({
       <div className="mb-6">
         <div className="flex items-center gap-3 flex-wrap mb-2">
           <ProjectStatusBadge status={project.status} />
+          {activeVersion && (
+            <span className="text-xs text-surface-400 font-mono">
+              v{activeVersion.versionNumber}
+              {pendingVersion && (
+                <span className="ml-2 text-warning-dark font-sans">
+                  (v{pendingVersion.versionNumber} pending)
+                </span>
+              )}
+            </span>
+          )}
           <span className="text-xs text-surface-400">
             Posted {formatRelative(project.createdAt)}
           </span>
         </div>
         <h1 className="text-2xl font-bold text-surface-900 leading-tight">{project.title}</h1>
       </div>
+
+      {/* Signoff bar — shown to assigned learner when there's a pending version */}
+      {isAssigned && pendingVersion && diff && (
+        <div className="mb-6">
+          <VersionApprovalBar
+            projectId={project.id}
+            pendingVersionNumber={pendingVersion.versionNumber}
+            pendingVersionId={pendingVersion.id}
+            diff={diff}
+            projectStatus={project.status}
+            viewerRole="LEARNER"
+            viewerId={session.user.id}
+            signoffs={pendingSignoffs}
+            hasNextPhase={hasNextPhase}
+          />
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left column */}
@@ -221,6 +302,35 @@ export default async function LearnerProjectDetailPage({
                 <Badge variant="default">{project.milestones.length}</Badge>
               </div>
               <MilestoneList milestones={project.milestones} />
+            </Card>
+          )}
+
+          {/* Phases */}
+          {project.phases.length > 1 && (
+            <Card padding="md">
+              <div className="flex items-center gap-2 mb-3">
+                <GitBranch className="w-4 h-4 text-surface-400" />
+                <CardTitle>Phases</CardTitle>
+              </div>
+              <div className="space-y-2">
+                {project.phases.map((phase) => (
+                  <div key={phase.id} className="flex items-center gap-3">
+                    <div className={`w-2 h-2 rounded-full shrink-0 ${
+                      phase.status === "ACTIVE" ? "bg-brand-500" :
+                      phase.status === "COMPLETE" ? "bg-success" : "bg-surface-200"
+                    }`} />
+                    <span className="text-sm text-surface-700 flex-1">
+                      Phase {phase.phaseNumber}{phase.title ? ` — ${phase.title}` : ""}
+                    </span>
+                    <span className={`text-xs ${
+                      phase.status === "ACTIVE" ? "text-brand-600 font-medium" :
+                      phase.status === "COMPLETE" ? "text-success" : "text-surface-400"
+                    }`}>
+                      {phase.status === "ACTIVE" ? "Active" : phase.status === "COMPLETE" ? "Done" : "Upcoming"}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </Card>
           )}
         </div>

@@ -118,6 +118,19 @@ export default async function ConsultantProjectDetailPage({
     DEFERRED:      { variant: "default", label: "Deferred" },
   };
 
+  // Serialize signoffs for the pending version
+  const pendingSignoffs = pendingVersion
+    ? pendingVersion.signoffs.map((s) => ({
+        userId: s.user.id,
+        userName: s.user.name,
+        role: s.user.role,
+      }))
+    : [];
+
+  const hasNextPhase = project.phases.some(
+    (p) => p.phaseNumber === project.currentPhase + 1
+  );
+
   // Serialize work requests for client component
   const serializedRequests = project.workRequests.map((r) => ({
     id: r.id,
@@ -180,6 +193,10 @@ export default async function ConsultantProjectDetailPage({
             pendingVersionId={pendingVersion.id}
             diff={diff}
             projectStatus={project.status}
+            viewerRole="CONSULTANT"
+            viewerId={session.user.id}
+            signoffs={pendingSignoffs}
+            hasNextPhase={hasNextPhase}
           />
         </div>
       )}
