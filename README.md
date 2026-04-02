@@ -139,19 +139,101 @@ prisma/
 
 ---
 
+## Testing
+
+The project uses **Vitest** for unit, component, and integration tests, and **Playwright** for end-to-end tests.
+
+### Test structure
+
+```
+src/__tests__/
+├── api/                  # Integration tests (API routes)
+│   ├── analytics.test.ts
+│   ├── approve.test.ts
+│   ├── defer.test.ts
+│   ├── projects.test.ts
+│   ├── request.test.ts
+│   ├── signoff.test.ts
+│   └── versions.test.ts
+└── setup/
+    └── component-setup.ts
+src/lib/diff/__tests__/          # Unit tests (diff engine)
+src/modules/**/hooks/__tests__/  # Hook tests
+src/modules/**/components/__tests__/  # Component tests
+src/modules/**/utils/__tests__/  # Utility tests
+e2e/                             # Playwright E2E tests
+```
+
+### Running tests locally
+
+```bash
+# Run all tests (unit + component + integration)
+npm test
+
+# Run specific test suites
+npm run test:unit           # Unit tests only
+npm run test:components     # Component tests only (happy-dom)
+npm run test:integration    # API integration tests (sequential, Node env)
+
+# Watch mode (re-runs on file changes)
+npx vitest --watch
+
+# Run a single test file
+npx vitest run src/__tests__/api/signoff.test.ts
+
+# Coverage report
+npm run test:coverage
+
+# E2E tests (requires the app running on localhost:3000)
+npm run test:e2e            # Headless
+npm run test:e2e:ui         # Interactive UI mode
+```
+
+### Testing with a test database
+
+Use a separate `.env.test` to point at an isolated database:
+
+```bash
+# Reset and seed the test database
+npm run db:test:reset       # Apply migrations to test DB
+npm run db:test:seed        # Seed test DB with sample data
+```
+
+### Running tests in CI
+
+A GitHub Actions workflow is provided at `.github/workflows/ci.yml`. It runs automatically on pushes and pull requests to `main` and `develop`.
+
+**What CI does:**
+1. Starts a PostgreSQL service container
+2. Installs dependencies
+3. Generates the Prisma client and pushes the schema
+4. Seeds the database
+5. Runs all Vitest suites (unit, component, integration)
+6. Builds the Next.js app (type-check + build validation)
+
+To run the same sequence locally:
+
+```bash
+npm run test:ci
+```
+
+> **Note:** `test:ci` runs all Vitest suites followed by Playwright E2E tests. Ensure the database is running and seeded before running locally.
+
+---
+
 ## Completed
 | Phase | What got added |
 |---|---|
 | Phase 1 | Project creation form — rich text, images, milestones, submit |
 | Phase 2 | Project list + detail view for consultant |
 | Phase 3 | Edit + version diffing + highlighted changes |
+| Phase 4 | Learner project search and discovery |
+| Phase 5 | Work requests + approval + state transitions |
+| Phase 6 | Collaborative signoff + defer to next phase |
 
 ## Coming next
 | Phase | What gets added |
 |---|---|
-| Phase 4 | Learner project search and discovery |
-| Phase 5 | Work requests + approval + state transitions |
-| Phase 6 | Signoff flow for in-progress changes |
 | Phase 7 | Comments section |
 | Phase 8 | Project completion |
 | Phase 9 | Analytics dashboard |
