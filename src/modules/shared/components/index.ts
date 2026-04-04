@@ -7,3 +7,4 @@ export { Avatar } from "./Avatar";
 export { EmptyState } from "./EmptyState";
 export { Spinner, PageLoader } from "./Spinner";
 export { AppShell } from "./AppShell";
+export { Modal } from "./Modal";

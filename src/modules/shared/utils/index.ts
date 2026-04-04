@@ -56,6 +56,7 @@ export function statusLabel(status: string): string {
   const map: Record<string, string> = {
     OPEN: "Open",
     IN_PROGRESS: "In Progress",
+    ON_HOLD: "On Hold",
     DONE: "Done",
     ARCHIVED: "Archived",
   };
@@ -66,6 +67,7 @@ export function statusColor(status: string): string {
   const map: Record<string, string> = {
     OPEN: "bg-info/10 text-info border-info/20",
     IN_PROGRESS: "bg-warning/10 text-warning-dark border-warning/20",
+    ON_HOLD: "bg-surface-200 text-surface-600 border-surface-300",
     DONE: "bg-success/10 text-success-dark border-success/20",
     ARCHIVED: "bg-surface-100 text-surface-500 border-surface-200",
   };

@@ -51,6 +51,7 @@ model User {
 enum ProjectStatus {
   OPEN
   IN_PROGRESS
+  ON_HOLD
   DONE
   ARCHIVED
 }

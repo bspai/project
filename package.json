@@ -12,7 +12,17 @@
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
-    "prepare": "husky"
+    "prepare": "husky",
+    "test": "vitest",
+    "test:unit": "vitest run --project unit",
+    "test:integration": "vitest run --project integration --sequence.concurrent=false",
+    "test:components": "vitest run --project components",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:coverage": "vitest run --coverage",
+    "test:ci": "vitest run && playwright test --project=chromium",
+    "db:test:reset": "dotenv -e .env.test -- prisma migrate deploy",
+    "db:test:seed": "dotenv -e .env.test -- tsx prisma/seed.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.609.0",
@@ -57,21 +67,30 @@
     "seed": "tsx prisma/seed.ts"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/bcryptjs": "^2.4.6",
     "@types/diff-match-patch": "^1.0.36",
     "@types/node": "^20.14.10",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@types/uuid": "^10.0.0",
+    "@vitejs/plugin-react": "^6.0.1",
+    "@vitest/coverage-v8": "^4.1.2",
     "autoprefixer": "^10.4.19",
     "dotenv-cli": "^11.0.0",
     "eslint": "^8.57.0",
     "eslint-config-next": "14.2.5",
+    "happy-dom": "^20.8.9",
     "husky": "^9.1.7",
     "postcss": "^8.4.39",
     "prisma": "^5.16.1",
     "tailwindcss": "^3.4.6",
     "tsx": "^4.16.2",
-    "typescript": "^5.5.3"
+    "typescript": "^5.5.3",
+    "vite-tsconfig-paths": "^6.1.1",
+    "vitest": "^4.1.2"
   }
 }
