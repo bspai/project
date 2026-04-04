@@ -31,7 +31,6 @@ const validBody = {
   title: "Updated Title",
   deadline: "2025-12-01",
   technologies: ["React"],
-  milestones: [{ id: "m1", title: "M1", deadline: "2025-10-01", phaseNumber: 1 }],
   descriptionJson: { type: "doc", content: [] },
   descriptionText: "Updated description text",
 };
@@ -71,7 +70,7 @@ describe("POST /api/projects/[id]/versions", () => {
     );
   });
 
-  it("stores metaSnapshot with submitted data", async () => {
+  it("stores metaSnapshot with submitted data (no milestones)", async () => {
     await POST(makeRequest(validBody), { params });
 
     const call = mockPrisma.projectVersion.create.mock.calls[0][0];
@@ -81,6 +80,7 @@ describe("POST /api/projects/[id]/versions", () => {
         technologies: ["React"],
       })
     );
+    expect(call.data.metaSnapshot).not.toHaveProperty("milestones");
   });
 
   it("rejects unauthenticated request", async () => {

@@ -19,7 +19,6 @@ export interface ProjectDiff {
   description: FieldDiff;
   technologies: FieldDiff;
   deadline: FieldDiff;
-  milestones: FieldDiff;
   hasAnyChange: boolean;
 }
 
@@ -55,13 +54,11 @@ export function diffProjectVersions(
     title: string;
     deadline: Date | string;
     technologies: string[];
-    milestones: Array<{ title: string; deadline: Date | string }>;
   },
   newMeta: {
     title: string;
     deadline: Date | string;
     technologies: string[];
-    milestones: Array<{ title: string; deadline: Date | string }>;
   }
 ): ProjectDiff {
   // Title diff
@@ -106,32 +103,11 @@ export function diffProjectVersions(
     newValue: newTechStr,
   };
 
-  // Milestones diff (summary level)
-  const oldMilestoneStr = oldMeta.milestones
-    .map((m) => `${m.title} (${new Date(m.deadline).toDateString()})`)
-    .join("\n");
-  const newMilestoneStr = newMeta.milestones
-    .map((m) => `${m.title} (${new Date(m.deadline).toDateString()})`)
-    .join("\n");
-  const milestonesChanged = oldMilestoneStr !== newMilestoneStr;
-  const milestonesDiff: FieldDiff = {
-    changed: milestonesChanged,
-    segments: milestonesChanged
-      ? diffText(oldMilestoneStr, newMilestoneStr)
-      : undefined,
-  };
-
   return {
     title: titleDiff,
     description: descDiff,
     technologies: techDiff,
     deadline: deadlineDiff,
-    milestones: milestonesDiff,
-    hasAnyChange:
-      titleChanged ||
-      descChanged ||
-      deadlineChanged ||
-      techChanged ||
-      milestonesChanged,
+    hasAnyChange: titleChanged || descChanged || deadlineChanged || techChanged,
   };
 }

@@ -66,8 +66,14 @@ export function WorkRequestButton({ projectId, requestStatus, isAssigned }: Work
         body: JSON.stringify({}),
       });
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error ?? "Failed to send request");
+        let message = "Failed to send request";
+        try {
+          const data = await res.json();
+          message = data.error ?? message;
+        } catch {
+          // response body was not JSON (e.g. 500 with HTML)
+        }
+        throw new Error(message);
       }
       trackEvent({ action: "work_request_sent", entity: "project", entityId: projectId });
       setLocalStatus("PENDING");

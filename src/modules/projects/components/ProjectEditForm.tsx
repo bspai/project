@@ -7,28 +7,19 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { RichTextEditor } from "./RichTextEditor";
-import { MilestonesBuilder } from "./MilestonesBuilder";
 import { TechnologiesInput } from "./TechnologiesInput";
 import { Button } from "@/modules/shared/components/Button";
 import { Input } from "@/modules/shared/components/Input";
 import { Card } from "@/modules/shared/components/Card";
 import { useTrackEvent } from "@/modules/shared/hooks/useTrackEvent";
 import type { ProjectFormValues } from "../types";
-import { FileText, Flag, Cpu, Calendar, AlertCircle } from "lucide-react";
+import { FileText, Cpu, Calendar, AlertCircle } from "lucide-react";
 import { JsonValue } from "@prisma/client/runtime/library";
-
-const milestoneSchema = z.object({
-  id: z.string(),
-  title: z.string().min(1, "Milestone title is required"),
-  deadline: z.string().min(1, "Milestone deadline is required"),
-  phaseNumber: z.number().default(1),
-});
 
 const schema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
   deadline: z.string().min(1, "Deadline is required"),
   technologies: z.array(z.string()).min(1, "Add at least one technology"),
-  milestones: z.array(milestoneSchema),
   descriptionJson: z.record(z.unknown()),
   descriptionText: z.string().min(10, "Description must be at least 10 characters"),
 });
@@ -54,15 +45,12 @@ export function ProjectEditForm({
     register,
     handleSubmit,
     control,
-    watch,
     setValue,
     formState: { errors, isSubmitting, isDirty },
   } = useForm<ProjectFormValues>({
     resolver: zodResolver(schema),
     defaultValues,
   });
-
-  const deadline = watch("deadline");
 
   const onSubmit = useCallback(
     async (values: ProjectFormValues) => {
@@ -188,28 +176,6 @@ export function ProjectEditForm({
         />
       </Card>
 
-      {/* Milestones */}
-      <Card padding="md">
-        <div className="flex items-center gap-2 mb-4">
-          <Flag className="w-4 h-4 text-brand-500" />
-          <h2 className="text-sm font-semibold text-surface-800">Milestones</h2>
-        </div>
-        <Controller
-          name="milestones"
-          control={control}
-          render={({ field }) => (
-            <MilestonesBuilder
-              value={field.value}
-              onChange={field.onChange}
-              projectDeadline={deadline}
-              error={
-                errors.milestones ? "One or more milestones have missing fields" : undefined
-              }
-            />
-          )}
-        />
-      </Card>
-
       {/* Submit */}
       <div className="flex items-center justify-end gap-3 pt-2">
         <Button
@@ -235,6 +201,7 @@ export function ProjectEditForm({
           Submit Changes
         </Button>
       </div>
+
     </form>
   );
 }

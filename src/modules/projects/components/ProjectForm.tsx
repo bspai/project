@@ -8,14 +8,19 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { RichTextEditor } from "./RichTextEditor";
 import { MilestonesBuilder } from "./MilestonesBuilder";
+import { PhaseManagerModal } from "./PhaseManagerModal";
 import { TechnologiesInput } from "./TechnologiesInput";
 import { Button } from "@/modules/shared/components/Button";
 import { Input } from "@/modules/shared/components/Input";
 import { Card } from "@/modules/shared/components/Card";
 import { useTrackEvent } from "@/modules/shared/hooks/useTrackEvent";
-import type { ProjectFormValues } from "../types";
-import { FileText, Flag, Cpu, Calendar, AlertCircle } from "lucide-react";
+import { FileText, Flag, Cpu, Calendar, AlertCircle, GitBranch } from "lucide-react";
 import { JsonValue } from "@prisma/client/runtime/library";
+
+const phaseSchema = z.object({
+  id: z.string(),
+  title: z.string().min(1, "Phase title is required"),
+});
 
 const milestoneSchema = z.object({
   id: z.string(),
@@ -28,13 +33,24 @@ const schema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
   deadline: z.string().min(1, "Deadline is required"),
   technologies: z.array(z.string()).min(1, "Add at least one technology"),
+  phases: z.array(phaseSchema),
   milestones: z.array(milestoneSchema),
   descriptionJson: z.record(z.unknown()),
   descriptionText: z.string().min(10, "Description must be at least 10 characters"),
 });
 
+interface CreateFormValues {
+  title: string;
+  deadline: string;
+  technologies: string[];
+  phases: { id: string; title: string }[];
+  milestones: { id: string; title: string; deadline: string; phaseNumber: number }[];
+  descriptionJson: Record<string, unknown>;
+  descriptionText: string;
+}
+
 interface ProjectFormProps {
-  defaultValues?: Partial<ProjectFormValues>;
+  defaultValues?: Partial<CreateFormValues>;
   projectId?: string; // if editing
   mode?: "create" | "edit";
 }
@@ -47,6 +63,7 @@ export function ProjectForm({
   const router = useRouter();
   const { trackEvent } = useTrackEvent();
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [phaseModalOpen, setPhaseModalOpen] = useState(false);
 
   const {
     register,
@@ -55,12 +72,13 @@ export function ProjectForm({
     watch,
     setValue,
     formState: { errors, isSubmitting },
-  } = useForm<ProjectFormValues>({
+  } = useForm<CreateFormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       title: defaultValues?.title ?? "",
       deadline: defaultValues?.deadline ?? "",
       technologies: defaultValues?.technologies ?? [],
+      phases: defaultValues?.phases ?? [],
       milestones: defaultValues?.milestones ?? [],
       descriptionJson: defaultValues?.descriptionJson ?? {},
       descriptionText: defaultValues?.descriptionText ?? "",
@@ -68,9 +86,10 @@ export function ProjectForm({
   });
 
   const deadline = watch("deadline");
+  const phases = watch("phases");
 
   const onSubmit = useCallback(
-    async (values: ProjectFormValues) => {
+    async (values: CreateFormValues) => {
       setSubmitError(null);
       try {
         const url = mode === "edit" ? `/api/projects/${projectId}` : "/api/projects";
@@ -193,10 +212,23 @@ export function ProjectForm({
 
       {/* Milestones */}
       <Card padding="md">
-        <div className="flex items-center gap-2 mb-4">
-          <Flag className="w-4 h-4 text-brand-500" />
-          <h2 className="text-sm font-semibold text-surface-800">Milestones</h2>
-          <span className="text-xs text-surface-400 ml-1">(optional)</span>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Flag className="w-4 h-4 text-brand-500" />
+            <h2 className="text-sm font-semibold text-surface-800">Milestones</h2>
+            <span className="text-xs text-surface-400 ml-1">(optional)</span>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            leftIcon={<GitBranch className="w-3.5 h-3.5" />}
+            onClick={() => setPhaseModalOpen(true)}
+          >
+            {phases.length > 0
+              ? `Manage Phases (${phases.length})`
+              : "Add Phases"}
+          </Button>
         </div>
         <Controller
           name="milestones"
@@ -206,6 +238,7 @@ export function ProjectForm({
               value={field.value}
               onChange={field.onChange}
               projectDeadline={deadline}
+              phases={phases}
               error={
                 errors.milestones
                   ? "One or more milestones have missing fields"
@@ -230,6 +263,14 @@ export function ProjectForm({
           {mode === "create" ? "Submit Project" : "Save Changes"}
         </Button>
       </div>
+
+      {/* Phase Manager Modal */}
+      <PhaseManagerModal
+        open={phaseModalOpen}
+        onClose={() => setPhaseModalOpen(false)}
+        phases={phases}
+        onSave={(updated) => setValue("phases", updated, { shouldDirty: true })}
+      />
     </form>
   );
 }

@@ -4,7 +4,7 @@
 import { useState } from "react";
 import {
   CheckCircle2, ChevronDown, ChevronUp, GitBranch,
-  AlertTriangle, Clock, UserCheck, FastForward,
+  AlertTriangle, Clock, UserCheck,
 } from "lucide-react";
 import { Button } from "@/modules/shared/components/Button";
 import { DiffViewer } from "./DiffViewer";
@@ -29,8 +29,6 @@ interface VersionApprovalBarProps {
   viewerId: string;
   /** Existing signoffs on the pending version */
   signoffs?: SignoffInfo[];
-  /** Whether a next phase exists (enables defer button) */
-  hasNextPhase?: boolean;
 }
 
 export function VersionApprovalBar({
@@ -42,14 +40,11 @@ export function VersionApprovalBar({
   viewerRole,
   viewerId,
   signoffs = [],
-  hasNextPhase = false,
 }: VersionApprovalBarProps) {
   const { trackEvent } = useTrackEvent();
   const [expanded, setExpanded] = useState(true);
   const [isApproving, setIsApproving] = useState(false);
-  const [isDeferring, setIsDeferring] = useState(false);
   const [approved, setApproved] = useState(false);
-  const [deferred, setDeferred] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const canSelfApprove = projectStatus === "OPEN" && viewerRole === "CONSULTANT";
@@ -126,39 +121,6 @@ export function VersionApprovalBar({
     }
   }
 
-  async function handleDefer() {
-    setIsDeferring(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/projects/${projectId}/defer`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ versionId: pendingVersionId }),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error ?? "Defer failed");
-      }
-      trackEvent({
-        action: "version_deferred",
-        entity: "project",
-        entityId: projectId,
-        metadata: { versionNumber: pendingVersionNumber },
-      });
-      setDeferred(true);
-      setTimeout(() => {
-        window.location.href =
-          viewerRole === "CONSULTANT"
-            ? `/consultant/projects/${projectId}`
-            : `/learner/projects/${projectId}`;
-      }, 0);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-      setIsDeferring(false);
-    }
-  }
-
-  // Success banners
   if (approved) {
     return (
       <div className="rounded-xl border-2 border-success/30 bg-success/5 px-5 py-4 flex items-center gap-3">
@@ -170,22 +132,6 @@ export function VersionApprovalBar({
             {canSelfApprove
               ? `Version ${pendingVersionNumber} approved`
               : `You have signed off on version ${pendingVersionNumber}`}
-          </p>
-          <p className="text-xs text-surface-500 mt-0.5">Refreshing page…</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (deferred) {
-    return (
-      <div className="rounded-xl border-2 border-surface-300 bg-surface-50 px-5 py-4 flex items-center gap-3">
-        <div className="w-8 h-8 rounded-lg bg-surface-200 flex items-center justify-center shrink-0">
-          <FastForward className="w-4 h-4 text-surface-600" />
-        </div>
-        <div>
-          <p className="text-sm font-semibold text-surface-700">
-            Version {pendingVersionNumber} deferred to next phase
           </p>
           <p className="text-xs text-surface-500 mt-0.5">Refreshing page…</p>
         </div>
@@ -233,17 +179,6 @@ export function VersionApprovalBar({
               onClick={handleSignoff}
             >
               Sign Off
-            </Button>
-          )}
-          {isInProgress && hasNextPhase && !viewerSigned && (
-            <Button
-              size="sm"
-              variant="outline"
-              isLoading={isDeferring}
-              leftIcon={<FastForward className="w-4 h-4" />}
-              onClick={handleDefer}
-            >
-              Defer to Next Phase
             </Button>
           )}
           <button

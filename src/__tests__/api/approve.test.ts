@@ -6,7 +6,6 @@ const { mockSession, mockTx, mockPrisma } = vi.hoisted(() => {
   const mockTx = {
     projectVersion: { updateMany: vi.fn(), update: vi.fn() },
     project: { update: vi.fn() },
-    milestone: { deleteMany: vi.fn(), createMany: vi.fn() },
     versionSignoff: { upsert: vi.fn() },
   };
   const mockPrisma = {
@@ -55,7 +54,6 @@ describe("POST /api/projects/[id]/approve", () => {
         title: "Updated Title",
         deadline: "2025-12-01",
         technologies: ["React"],
-        milestones: [{ title: "M1", deadline: "2025-10-01", phaseNumber: 1 }],
       },
     });
   });
@@ -100,17 +98,6 @@ describe("POST /api/projects/[id]/approve", () => {
         }),
       })
     );
-  });
-
-  it("replaces milestones for current phase", async () => {
-    await POST(makeRequest({ versionId }), { params });
-
-    expect(mockTx.milestone.deleteMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { projectId, phaseNumber: 1 },
-      })
-    );
-    expect(mockTx.milestone.createMany).toHaveBeenCalled();
   });
 
   it("records signoff", async () => {

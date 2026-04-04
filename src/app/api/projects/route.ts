@@ -6,6 +6,11 @@ import { prisma } from "@/lib/db/prisma";
 import { z } from "zod";
 import { InputJsonValue } from "@prisma/client/runtime/library";
 
+const phaseSchema = z.object({
+  id: z.string(),
+  title: z.string().min(1),
+});
+
 const milestoneSchema = z.object({
   id: z.string(),
   title: z.string().min(1),
@@ -17,6 +22,7 @@ const createSchema = z.object({
   title: z.string().min(3),
   deadline: z.string().min(1),
   technologies: z.array(z.string()).min(1),
+  phases: z.array(phaseSchema).default([]),
   milestones: z.array(milestoneSchema),
   descriptionJson: z.custom<InputJsonValue>((val) => val !== null),
   descriptionText: z.string().min(1),
@@ -38,8 +44,18 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { title, deadline, technologies, milestones, descriptionJson, descriptionText } =
+  const { title, deadline, technologies, phases, milestones, descriptionJson, descriptionText } =
     parsed.data;
+
+  // Build phase records — default to a single phase if none provided
+  const phaseRecords = phases.length > 0
+    ? phases.map((p, i) => ({
+        phaseNumber: i + 1,
+        title: p.title,
+        status: i === 0 ? ("ACTIVE" as const) : ("UPCOMING" as const),
+        ...(i === 0 ? { startedAt: new Date() } : {}),
+      }))
+    : [{ phaseNumber: 1, title: "Phase 1", status: "ACTIVE" as const, startedAt: new Date() }];
 
   const project = await prisma.project.create({
     data: {
@@ -50,9 +66,7 @@ export async function POST(req: NextRequest) {
       currentPhase: 1,
       creatorId: session.user.id,
       phases: {
-        create: [
-          { phaseNumber: 1, title: "Phase 1", status: "ACTIVE", startedAt: new Date() },
-        ],
+        create: phaseRecords,
       },
       milestones: {
         create: milestones.map((m, i) => ({

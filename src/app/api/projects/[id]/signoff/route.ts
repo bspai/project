@@ -104,6 +104,8 @@ export async function POST(
       title: string;
       deadline: string;
       technologies: string[];
+      descriptionJson?: unknown;
+      descriptionText?: string;
       milestones: Array<{ title: string; deadline: string; phaseNumber: number }>;
     } | null;
 
@@ -132,51 +134,9 @@ export async function POST(
           },
         });
 
-        // 4. Replace milestones for current phase
-        await tx.milestone.deleteMany({
-          where: { projectId, phaseNumber: project.currentPhase },
-        });
-
-        if (snap.milestones.length > 0) {
-          await tx.milestone.createMany({
-            data: snap.milestones.map((m, i) => ({
-              title: m.title,
-              deadline: new Date(m.deadline),
-              order: i + 1,
-              phaseNumber: m.phaseNumber ?? project.currentPhase,
-              projectId,
-            })),
-          });
-        }
       }
 
-      // 5. Advance phase: close current, open next
-      const currentPhase = project.phases.find(
-        (p) => p.phaseNumber === project.currentPhase
-      );
-      const nextPhase = project.phases.find(
-        (p) => p.phaseNumber === project.currentPhase + 1
-      );
-
-      if (currentPhase) {
-        await tx.projectPhase.update({
-          where: { id: currentPhase.id },
-          data: { status: "COMPLETE", completedAt: new Date() },
-        });
-      }
-
-      if (nextPhase) {
-        await tx.projectPhase.update({
-          where: { id: nextPhase.id },
-          data: { status: "ACTIVE", startedAt: new Date() },
-        });
-        await tx.project.update({
-          where: { id: projectId },
-          data: { currentPhase: nextPhase.phaseNumber },
-        });
-      }
-
-      // 6. Notify both parties
+      // 5. Notify both parties
       const assignedLearner = project.assignees[0];
 
       // Notify consultant (if learner was last to sign)

@@ -30,7 +30,6 @@ export default async function EditProjectPage({
   const project = await prisma.project.findUnique({
     where: { id: params.id },
     include: {
-      milestones: { orderBy: { order: "asc" } },
       versions: {
         where: { isActive: true },
         take: 1,
@@ -42,7 +41,7 @@ export default async function EditProjectPage({
   if (project.creatorId !== session.user.id) notFound();
 
   // Don't allow editing completed/archived projects
-  if (project.status === "DONE" || project.status === "ARCHIVED") {
+  if (project.status === "DONE" || project.status === "ARCHIVED" || project.status === "ON_HOLD") {
     redirect(`/consultant/projects/${params.id}`);
   }
 
@@ -57,12 +56,6 @@ export default async function EditProjectPage({
     title: project.title,
     deadline: project.deadline.toISOString().slice(0, 10),
     technologies: project.technologies,
-    milestones: project.milestones.map((m) => ({
-      id: m.id,
-      title: m.title,
-      deadline: m.deadline.toISOString().slice(0, 10),
-      phaseNumber: m.phaseNumber,
-    })),
     descriptionJson:
       (activeVersion?.descriptionJson as JsonValue) ?? {},
     descriptionText: activeVersion?.descriptionText ?? "",

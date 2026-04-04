@@ -84,11 +84,13 @@ export default async function LearnerProjectDetailPage({
     if (!isAssigned || !pendingVersion || !activeVersion) return null;
     const oldSnap = activeVersion.metaSnapshot as {
       title: string; deadline: string; technologies: string[];
-      milestones: Array<{ title: string; deadline: string }>;
+      descriptionJson?: unknown;
+      descriptionText?: string;
     } | null;
     const newSnap = pendingVersion.metaSnapshot as {
       title: string; deadline: string; technologies: string[];
-      milestones: Array<{ title: string; deadline: string }>;
+      descriptionJson?: unknown;
+      descriptionText?: string;
     } | null;
     return diffProjectVersions(
       { descriptionText: activeVersion.descriptionText, descriptionJson: activeVersion.descriptionJson as JsonValue },
@@ -97,13 +99,11 @@ export default async function LearnerProjectDetailPage({
         title: oldSnap?.title ?? project.title,
         deadline: oldSnap?.deadline ?? project.deadline,
         technologies: oldSnap?.technologies ?? project.technologies,
-        milestones: oldSnap?.milestones ?? project.milestones,
       },
       {
         title: newSnap?.title ?? project.title,
         deadline: newSnap?.deadline ?? project.deadline,
         technologies: newSnap?.technologies ?? project.technologies,
-        milestones: newSnap?.milestones ?? project.milestones,
       }
     );
   })();
@@ -116,10 +116,6 @@ export default async function LearnerProjectDetailPage({
         role: s.user.role,
       }))
     : [];
-
-  const hasNextPhase = project.phases.some(
-    (p) => p.phaseNumber === project.currentPhase + 1
-  );
 
   // Show request button if:
   // - project is OPEN (can request)
@@ -176,7 +172,6 @@ export default async function LearnerProjectDetailPage({
             viewerRole="LEARNER"
             viewerId={session.user.id}
             signoffs={pendingSignoffs}
-            hasNextPhase={hasNextPhase}
           />
         </div>
       )}
@@ -301,7 +296,11 @@ export default async function LearnerProjectDetailPage({
                 <CardTitle>Milestones</CardTitle>
                 <Badge variant="default">{project.milestones.length}</Badge>
               </div>
-              <MilestoneList milestones={project.milestones} />
+              <MilestoneList
+                milestones={project.milestones}
+                projectId={project.id}
+                canToggle={isAssigned && project.status === "IN_PROGRESS"}
+              />
             </Card>
           )}
 

@@ -11,14 +11,6 @@ const schema = z.object({
   title: z.string().min(3),
   deadline: z.string().min(1),
   technologies: z.array(z.string()).min(1),
-  milestones: z.array(
-    z.object({
-      id: z.string(),
-      title: z.string().min(1),
-      deadline: z.string().min(1),
-      phaseNumber: z.number().default(1),
-    })
-  ),
   descriptionJson: z.record(z.unknown()),
   descriptionText: z.string().min(1),
 });
@@ -67,8 +59,7 @@ export async function POST(
     );
   }
 
-  const { title, deadline, technologies, milestones, descriptionJson, descriptionText } =
-    parsed.data;
+  const { title, deadline, technologies, descriptionJson, descriptionText } = parsed.data;
 
   const latestVersion = project.versions[0];
   const nextVersionNumber = (latestVersion?.versionNumber ?? 0) + 1;
@@ -91,11 +82,8 @@ export async function POST(
         title,
         deadline,
         technologies,
-        milestones: milestones.map((m) => ({
-          title: m.title,
-          deadline: m.deadline,
-          phaseNumber: m.phaseNumber,
-        })),
+        descriptionJson,
+        descriptionText,
       },
     },
   });

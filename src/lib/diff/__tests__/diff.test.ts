@@ -32,7 +32,6 @@ describe("diffText", () => {
 
   it("handles empty strings", () => {
     const result = diffText("", "");
-    // Either empty array or single equal with empty text
     expect(result.every((s) => s.type === "equal")).toBe(true);
   });
 
@@ -53,10 +52,6 @@ describe("diffProjectVersions", () => {
     title: "My Project",
     deadline: new Date("2025-06-01"),
     technologies: ["React", "TypeScript"],
-    milestones: [
-      { title: "Milestone 1", deadline: new Date("2025-03-01") },
-      { title: "Milestone 2", deadline: new Date("2025-04-01") },
-    ],
   };
 
   it("reports no changes for identical versions", () => {
@@ -66,7 +61,6 @@ describe("diffProjectVersions", () => {
     expect(result.description.changed).toBe(false);
     expect(result.deadline.changed).toBe(false);
     expect(result.technologies.changed).toBe(false);
-    expect(result.milestones.changed).toBe(false);
   });
 
   it("detects title change", () => {
@@ -105,18 +99,6 @@ describe("diffProjectVersions", () => {
     expect(result.technologies.changed).toBe(false);
   });
 
-  it("detects milestones change", () => {
-    const newMeta = {
-      ...baseMeta,
-      milestones: [
-        { title: "New Milestone", deadline: new Date("2025-05-01") },
-      ],
-    };
-    const result = diffProjectVersions(baseVersion, baseVersion, baseMeta, newMeta);
-    expect(result.milestones.changed).toBe(true);
-    expect(result.milestones.segments).toBeDefined();
-  });
-
   it("sets hasAnyChange when at least one field changes", () => {
     const newMeta = { ...baseMeta, title: "Changed" };
     const result = diffProjectVersions(baseVersion, baseVersion, baseMeta, newMeta);
@@ -124,14 +106,7 @@ describe("diffProjectVersions", () => {
   });
 
   it("handles string deadline inputs", () => {
-    const metaWithStringDates = {
-      ...baseMeta,
-      deadline: "2025-06-01",
-      milestones: [
-        { title: "M1", deadline: "2025-03-01" },
-      ],
-    };
-    // Should not throw
+    const metaWithStringDates = { ...baseMeta, deadline: "2025-06-01" };
     const result = diffProjectVersions(baseVersion, baseVersion, metaWithStringDates, metaWithStringDates);
     expect(result.hasAnyChange).toBe(false);
   });

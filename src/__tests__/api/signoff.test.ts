@@ -6,8 +6,6 @@ const { mockSession, mockTx, mockPrisma } = vi.hoisted(() => {
   const mockTx = {
     projectVersion: { updateMany: vi.fn(), update: vi.fn() },
     project: { update: vi.fn() },
-    milestone: { deleteMany: vi.fn(), createMany: vi.fn() },
-    projectPhase: { update: vi.fn() },
     notification: { create: vi.fn() },
   };
   const mockPrisma = {
@@ -61,7 +59,6 @@ const versionBase = {
     title: "Updated",
     deadline: "2025-12-01",
     technologies: ["React"],
-    milestones: [{ title: "M1", deadline: "2025-10-01", phaseNumber: 1 }],
   },
 };
 
@@ -124,31 +121,6 @@ describe("POST /api/projects/[id]/signoff", () => {
     expect(mockTx.projectVersion.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: { isActive: true, status: "APPROVED" },
-      })
-    );
-  });
-
-  it("advances phase on mutual signoff", async () => {
-    mockSession.value = { user: { id: learnerId, role: "LEARNER" } };
-    mockPrisma.versionSignoff.findMany.mockResolvedValue([
-      { role: "CONSULTANT", userId: consultantId },
-      { role: "LEARNER", userId: learnerId },
-    ]);
-
-    await POST(makeRequest({ versionId }), { params });
-
-    // Current phase completed
-    expect(mockTx.projectPhase.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { id: "ph1" },
-        data: expect.objectContaining({ status: "COMPLETE" }),
-      })
-    );
-    // Next phase activated
-    expect(mockTx.projectPhase.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { id: "ph2" },
-        data: expect.objectContaining({ status: "ACTIVE" }),
       })
     );
   });
