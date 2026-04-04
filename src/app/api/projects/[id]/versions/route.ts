@@ -82,9 +82,9 @@ export async function POST(
         title,
         deadline,
         technologies,
-        descriptionJson,
+        descriptionJson: descriptionJson as InputJsonValue,
         descriptionText,
-      },
+      } as InputJsonValue,
     },
   });
 
