@@ -6,12 +6,13 @@ import { Plus, Trash2, GripVertical, Flag } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 import { cn } from "@/modules/shared/utils";
 import { Button } from "@/modules/shared/components/Button";
-import type { MilestoneInput } from "../types";
+import type { MilestoneInput, PhaseInput } from "../types";
 
 interface MilestonesBuilderProps {
   value: MilestoneInput[];
   onChange: (milestones: MilestoneInput[]) => void;
   projectDeadline?: string; // ISO string — milestones can't exceed this
+  phases?: PhaseInput[];
   error?: string;
 }
 
@@ -19,8 +20,10 @@ export function MilestonesBuilder({
   value,
   onChange,
   projectDeadline,
+  phases = [],
   error,
 }: MilestonesBuilderProps) {
+  const hasPhases = phases.length > 0;
   const addMilestone = useCallback(() => {
     onChange([
       ...value,
@@ -80,7 +83,10 @@ export function MilestonesBuilder({
               </div>
 
               {/* Fields */}
-              <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <div className={cn(
+                "flex-1 grid grid-cols-1 gap-2",
+                hasPhases ? "sm:grid-cols-4" : "sm:grid-cols-3"
+              )}>
                 {/* Title */}
                 <div className="sm:col-span-2">
                   <input
@@ -120,6 +126,29 @@ export function MilestonesBuilder({
                     )}
                   />
                 </div>
+
+                {/* Phase selector */}
+                {hasPhases && (
+                  <div>
+                    <select
+                      value={milestone.phaseNumber}
+                      onChange={(e) =>
+                        updateMilestone(milestone.id, "phaseNumber", Number(e.target.value))
+                      }
+                      className={cn(
+                        "w-full h-9 px-3 rounded-lg border text-sm bg-surface-50",
+                        "focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent",
+                        "text-surface-900 border-surface-200"
+                      )}
+                    >
+                      {phases.map((phase, i) => (
+                        <option key={phase.id} value={i + 1}>
+                          Phase {i + 1}{phase.title ? ` — ${phase.title}` : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
 
               {/* Remove */}

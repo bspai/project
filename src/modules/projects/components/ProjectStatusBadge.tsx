@@ -9,6 +9,7 @@ interface ProjectStatusBadgeProps {
 const config: Record<string, { variant: "info" | "warning" | "success" | "default"; label: string }> = {
   OPEN:        { variant: "info",    label: "Open" },
   IN_PROGRESS: { variant: "warning", label: "In Progress" },
+  ON_HOLD:     { variant: "default", label: "On Hold" },
   DONE:        { variant: "success", label: "Done" },
   ARCHIVED:    { variant: "default", label: "Archived" },
 };

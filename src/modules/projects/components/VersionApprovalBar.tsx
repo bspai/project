@@ -2,11 +2,20 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, ChevronDown, ChevronUp, GitBranch, AlertTriangle } from "lucide-react";
+import {
+  CheckCircle2, ChevronDown, ChevronUp, GitBranch,
+  AlertTriangle, Clock, UserCheck,
+} from "lucide-react";
 import { Button } from "@/modules/shared/components/Button";
 import { DiffViewer } from "./DiffViewer";
 import { useTrackEvent } from "@/modules/shared/hooks/useTrackEvent";
 import type { ProjectDiff } from "@/lib/diff";
+
+interface SignoffInfo {
+  userId: string;
+  userName: string;
+  role: string;
+}
 
 interface VersionApprovalBarProps {
   projectId: string;
@@ -14,6 +23,12 @@ interface VersionApprovalBarProps {
   pendingVersionId: string;
   diff: ProjectDiff;
   projectStatus: string;
+  /** Who is viewing this — "CONSULTANT" or "LEARNER" */
+  viewerRole: "CONSULTANT" | "LEARNER";
+  /** Current user ID */
+  viewerId: string;
+  /** Existing signoffs on the pending version */
+  signoffs?: SignoffInfo[];
 }
 
 export function VersionApprovalBar({
@@ -22,6 +37,9 @@ export function VersionApprovalBar({
   pendingVersionId,
   diff,
   projectStatus,
+  viewerRole,
+  viewerId,
+  signoffs = [],
 }: VersionApprovalBarProps) {
   const { trackEvent } = useTrackEvent();
   const [expanded, setExpanded] = useState(true);
@@ -29,9 +47,16 @@ export function VersionApprovalBar({
   const [approved, setApproved] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const canSelfApprove = projectStatus === "OPEN";
+  const canSelfApprove = projectStatus === "OPEN" && viewerRole === "CONSULTANT";
+  const isInProgress = projectStatus === "IN_PROGRESS";
 
-  async function handleApprove() {
+  // Signoff status
+  const consultantSigned = signoffs.some((s) => s.role === "CONSULTANT");
+  const learnerSigned = signoffs.some((s) => s.role === "LEARNER");
+  const viewerSigned = signoffs.some((s) => s.userId === viewerId);
+  const canSignoff = isInProgress && !viewerSigned;
+
+  async function handleSelfApprove() {
     setIsApproving(true);
     setError(null);
     try {
@@ -50,13 +75,12 @@ export function VersionApprovalBar({
         entityId: projectId,
         metadata: { versionNumber: pendingVersionNumber },
       });
-      // Show success briefly then hard-navigate.
-      // router.push() to the same URL is a no-op in Next.js App Router.
-      // router.refresh() does not reliably bust the RSC payload cache.
-      // window.location.href is the only guaranteed full server re-render.
       setApproved(true);
       setTimeout(() => {
-        window.location.href = `/consultant/projects/${projectId}`;
+        window.location.href =
+          viewerRole === "CONSULTANT"
+            ? `/consultant/projects/${projectId}`
+            : `/learner/projects/${projectId}`;
       }, 0);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
@@ -64,7 +88,39 @@ export function VersionApprovalBar({
     }
   }
 
-  // Success banner shown while redirect is in flight
+  async function handleSignoff() {
+    setIsApproving(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/signoff`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ versionId: pendingVersionId }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error ?? "Signoff failed");
+      }
+      const result = await res.json();
+      trackEvent({
+        action: "version_signoff",
+        entity: "project",
+        entityId: projectId,
+        metadata: { versionNumber: pendingVersionNumber, bothSigned: result.bothSigned },
+      });
+      setApproved(true);
+      setTimeout(() => {
+        window.location.href =
+          viewerRole === "CONSULTANT"
+            ? `/consultant/projects/${projectId}`
+            : `/learner/projects/${projectId}`;
+      }, 0);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+      setIsApproving(false);
+    }
+  }
+
   if (approved) {
     return (
       <div className="rounded-xl border-2 border-success/30 bg-success/5 px-5 py-4 flex items-center gap-3">
@@ -73,7 +129,9 @@ export function VersionApprovalBar({
         </div>
         <div>
           <p className="text-sm font-semibold text-success-dark">
-            Version {pendingVersionNumber} approved
+            {canSelfApprove
+              ? `Version ${pendingVersionNumber} approved`
+              : `You have signed off on version ${pendingVersionNumber}`}
           </p>
           <p className="text-xs text-surface-500 mt-0.5">Refreshing page…</p>
         </div>
@@ -90,12 +148,14 @@ export function VersionApprovalBar({
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-surface-900">
-            Version {pendingVersionNumber} pending approval
+            Version {pendingVersionNumber} pending {canSelfApprove ? "approval" : "signoff"}
           </p>
           <p className="text-xs text-surface-500 mt-0.5">
             {canSelfApprove
               ? "Review the changes below and approve to make them live."
-              : "Changes are pending signoff from both parties."}
+              : isInProgress
+                ? "Both consultant and learner must sign off to activate these changes."
+                : "Changes are pending signoff from both parties."}
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -105,9 +165,20 @@ export function VersionApprovalBar({
               variant="primary"
               isLoading={isApproving}
               leftIcon={<CheckCircle2 className="w-4 h-4" />}
-              onClick={handleApprove}
+              onClick={handleSelfApprove}
             >
               Approve Changes
+            </Button>
+          )}
+          {canSignoff && (
+            <Button
+              size="sm"
+              variant="primary"
+              isLoading={isApproving}
+              leftIcon={<UserCheck className="w-4 h-4" />}
+              onClick={handleSignoff}
+            >
+              Sign Off
             </Button>
           )}
           <button
@@ -118,6 +189,37 @@ export function VersionApprovalBar({
           </button>
         </div>
       </div>
+
+      {/* Signoff status indicators (IN_PROGRESS only) */}
+      {isInProgress && (
+        <div className="flex items-center gap-4 px-5 pb-2">
+          <div className="flex items-center gap-1.5 text-xs">
+            {consultantSigned ? (
+              <CheckCircle2 className="w-3.5 h-3.5 text-success" />
+            ) : (
+              <Clock className="w-3.5 h-3.5 text-surface-400" />
+            )}
+            <span className={consultantSigned ? "text-success-dark font-medium" : "text-surface-500"}>
+              Consultant {consultantSigned ? "signed" : "pending"}
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 text-xs">
+            {learnerSigned ? (
+              <CheckCircle2 className="w-3.5 h-3.5 text-success" />
+            ) : (
+              <Clock className="w-3.5 h-3.5 text-surface-400" />
+            )}
+            <span className={learnerSigned ? "text-success-dark font-medium" : "text-surface-500"}>
+              Learner {learnerSigned ? "signed" : "pending"}
+            </span>
+          </div>
+          {viewerSigned && (
+            <span className="text-xs text-brand-600 font-medium ml-auto">
+              You have signed off — waiting for the other party
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Error */}
       {error && (

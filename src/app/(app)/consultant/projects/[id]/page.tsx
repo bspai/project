@@ -13,10 +13,12 @@ import { Button } from "@/modules/shared/components/Button";
 import { Badge } from "@/modules/shared/components/Badge";
 import { Avatar } from "@/modules/shared/components/Avatar";
 import { RichTextViewer } from "@/modules/projects/components/RichTextViewer";
-import { MilestoneList } from "@/modules/projects/components/MilestoneList";
+import { MilestoneManager } from "@/modules/projects/components/MilestoneManager";
+import { PhaseManager } from "@/modules/projects/components/PhaseManager";
 import { ProjectStatusBadge } from "@/modules/projects/components/ProjectStatusBadge";
 import { VersionApprovalBar } from "@/modules/projects/components/VersionApprovalBar";
 import { WorkRequestsPanel } from "@/modules/projects/components/WorkRequestsPanel";
+import { StatusSelector } from "@/modules/projects/components/StatusSelector";
 import { formatDate, formatDateTime, formatRelative } from "@/modules/shared/utils";
 import { diffProjectVersions } from "@/lib/diff";
 import { JsonValue } from "@prisma/client/runtime/library";
@@ -87,11 +89,13 @@ export default async function ConsultantProjectDetailPage({
     if (!pendingVersion || !activeVersion) return null;
     const oldSnap = activeVersion.metaSnapshot as {
       title: string; deadline: string; technologies: string[];
-      milestones: Array<{ title: string; deadline: string }>;
+      descriptionJson?: unknown;
+      descriptionText?: string;
     } | null;
     const newSnap = pendingVersion.metaSnapshot as {
       title: string; deadline: string; technologies: string[];
-      milestones: Array<{ title: string; deadline: string }>;
+      descriptionJson?: unknown;
+      descriptionText?: string;
     } | null;
     return diffProjectVersions(
       { descriptionText: activeVersion.descriptionText, descriptionJson: activeVersion.descriptionJson as JsonValue },
@@ -100,13 +104,11 @@ export default async function ConsultantProjectDetailPage({
         title: oldSnap?.title ?? project.title,
         deadline: oldSnap?.deadline ?? project.deadline,
         technologies: oldSnap?.technologies ?? project.technologies,
-        milestones: oldSnap?.milestones ?? project.milestones,
       },
       {
         title: newSnap?.title ?? project.title,
         deadline: newSnap?.deadline ?? project.deadline,
         technologies: newSnap?.technologies ?? project.technologies,
-        milestones: newSnap?.milestones ?? project.milestones,
       }
     );
   })();
@@ -117,6 +119,15 @@ export default async function ConsultantProjectDetailPage({
     PENDING:       { variant: "warning", label: "Pending Signoff" },
     DEFERRED:      { variant: "default", label: "Deferred" },
   };
+
+  // Serialize signoffs for the pending version
+  const pendingSignoffs = pendingVersion
+    ? pendingVersion.signoffs.map((s) => ({
+        userId: s.user.id,
+        userName: s.user.name,
+        role: s.user.role,
+      }))
+    : [];
 
   // Serialize work requests for client component
   const serializedRequests = project.workRequests.map((r) => ({
@@ -162,7 +173,7 @@ export default async function ConsultantProjectDetailPage({
           </div>
           <h1 className="text-2xl font-bold text-surface-900 leading-tight">{project.title}</h1>
         </div>
-        {project.status !== "DONE" && project.status !== "ARCHIVED" && (
+        {project.status !== "DONE" && project.status !== "ARCHIVED" && project.status !== "ON_HOLD" && (
           <Link href={`/consultant/projects/${project.id}/edit`} className="shrink-0">
             <Button variant="outline" size="sm" leftIcon={<Pencil className="w-4 h-4" />}>
               Edit
@@ -180,6 +191,9 @@ export default async function ConsultantProjectDetailPage({
             pendingVersionId={pendingVersion.id}
             diff={diff}
             projectStatus={project.status}
+            viewerRole="CONSULTANT"
+            viewerId={session.user.id}
+            signoffs={pendingSignoffs}
           />
         </div>
       )}
@@ -219,36 +233,28 @@ export default async function ConsultantProjectDetailPage({
               <CardTitle>Milestones</CardTitle>
               <Badge variant="default">{project.milestones.length}</Badge>
             </div>
-            <MilestoneList milestones={project.milestones} showPhase={project.phases.length > 1} />
+            <MilestoneManager
+              projectId={project.id}
+              milestones={project.milestones}
+              phases={project.phases}
+              currentPhase={project.currentPhase}
+              showPhase={project.phases.length > 1}
+              canToggle={project.status === "IN_PROGRESS"}
+              canManage={project.status !== "DONE" && project.status !== "ARCHIVED" && project.status !== "ON_HOLD"}
+            />
           </Card>
 
-          {project.phases.length > 1 && (
-            <Card padding="md">
-              <div className="flex items-center gap-2 mb-3">
-                <GitBranch className="w-4 h-4 text-surface-400" />
-                <CardTitle>Phases</CardTitle>
-              </div>
-              <div className="space-y-2">
-                {project.phases.map((phase) => (
-                  <div key={phase.id} className="flex items-center gap-3">
-                    <div className={`w-2 h-2 rounded-full shrink-0 ${
-                      phase.status === "ACTIVE" ? "bg-brand-500" :
-                      phase.status === "COMPLETE" ? "bg-success" : "bg-surface-200"
-                    }`} />
-                    <span className="text-sm text-surface-700 flex-1">
-                      Phase {phase.phaseNumber}{phase.title ? ` — ${phase.title}` : ""}
-                    </span>
-                    <span className={`text-xs ${
-                      phase.status === "ACTIVE" ? "text-brand-600 font-medium" :
-                      phase.status === "COMPLETE" ? "text-success" : "text-surface-400"
-                    }`}>
-                      {phase.status === "ACTIVE" ? "Active" : phase.status === "COMPLETE" ? "Done" : "Upcoming"}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </Card>
-          )}
+          <Card padding="md">
+            <div className="flex items-center gap-2 mb-3">
+              <GitBranch className="w-4 h-4 text-surface-400" />
+              <CardTitle>Phases</CardTitle>
+            </div>
+            <PhaseManager
+              projectId={project.id}
+              phases={project.phases}
+              canManage={project.status !== "DONE" && project.status !== "ARCHIVED" && project.status !== "ON_HOLD"}
+            />
+          </Card>
 
           <Card padding="md">
             <CardHeader>
@@ -264,6 +270,15 @@ export default async function ConsultantProjectDetailPage({
 
         {/* Right sidebar */}
         <div className="space-y-4 lg:col-span-1">
+          <Card padding="md">
+            <CardTitle className="mb-3">Project Status</CardTitle>
+            {project.status !== "ARCHIVED" ? (
+              <StatusSelector projectId={project.id} currentStatus={project.status} />
+            ) : (
+              <p className="text-sm text-surface-400">Archived</p>
+            )}
+          </Card>
+
           <Card padding="md">
             <CardTitle className="mb-4">Project Info</CardTitle>
             <div className="space-y-3">

@@ -105,7 +105,6 @@ export function DiffViewer({ diff, className }: DiffViewerProps) {
       <DiffSection label="Title" diff={diff.title} />
       <DiffSection label="Deadline" diff={diff.deadline} />
       <DiffSection label="Technologies" diff={diff.technologies} />
-      <DiffSection label="Milestones" diff={diff.milestones} multiline />
       <DiffSection label="Description" diff={diff.description} multiline />
     </div>
   );

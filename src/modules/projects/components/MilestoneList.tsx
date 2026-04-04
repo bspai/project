@@ -1,5 +1,9 @@
 // src/modules/projects/components/MilestoneList.tsx
-import { CheckCircle2, Circle, Flag, AlertCircle } from "lucide-react";
+"use client";
+
+import { useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { CheckCircle2, Circle, Flag, AlertCircle, Loader2 } from "lucide-react";
 import { formatDate, formatDeadline } from "@/modules/shared/utils";
 import { cn } from "@/modules/shared/utils";
 
@@ -15,9 +19,54 @@ interface Milestone {
 interface MilestoneListProps {
   milestones: Milestone[];
   showPhase?: boolean;
+  projectId?: string;
+  canToggle?: boolean;
 }
 
-export function MilestoneList({ milestones, showPhase = false }: MilestoneListProps) {
+export function MilestoneList({
+  milestones,
+  showPhase = false,
+  projectId,
+  canToggle = false,
+}: MilestoneListProps) {
+  const router = useRouter();
+  const [states, setStates] = useState<Record<string, boolean>>(
+    () => Object.fromEntries(milestones.map((m) => [m.id, m.isComplete]))
+  );
+  const [loading, setLoading] = useState<Record<string, boolean>>({});
+
+  const toggle = useCallback(
+    async (id: string) => {
+      if (!canToggle || !projectId || loading[id]) return;
+
+      const prev = states[id];
+      setStates((s) => ({ ...s, [id]: !prev }));
+      setLoading((l) => ({ ...l, [id]: true }));
+
+      try {
+        const res = await fetch(
+          `/api/projects/${projectId}/milestones/${id}`,
+          { method: "PATCH" }
+        );
+
+        if (!res.ok) {
+          setStates((s) => ({ ...s, [id]: prev }));
+          return;
+        }
+
+        const data = await res.json();
+        if (data.phaseAdvanced || data.phaseReverted) {
+          router.refresh();
+        }
+      } catch {
+        setStates((s) => ({ ...s, [id]: prev }));
+      } finally {
+        setLoading((l) => ({ ...l, [id]: false }));
+      }
+    },
+    [canToggle, projectId, states, loading, router]
+  );
+
   if (milestones.length === 0) {
     return (
       <div className="flex items-center gap-2 py-4 text-surface-400">
@@ -28,7 +77,7 @@ export function MilestoneList({ milestones, showPhase = false }: MilestoneListPr
   }
 
   const sorted = [...milestones].sort((a, b) => a.order - b.order);
-  const completed = sorted.filter((m) => m.isComplete).length;
+  const completed = sorted.filter((m) => states[m.id]).length;
 
   return (
     <div className="space-y-1">
@@ -50,10 +99,12 @@ export function MilestoneList({ milestones, showPhase = false }: MilestoneListPr
 
       {/* Milestone rows */}
       {sorted.map((milestone, index) => {
+        const isComplete = states[milestone.id];
+        const isLoading = loading[milestone.id];
         const deadlineStr = formatDeadline(milestone.deadline);
-        const isOverdue = !milestone.isComplete && deadlineStr.includes("overdue");
+        const isOverdue = !isComplete && deadlineStr.includes("overdue");
         const isDueSoon =
-          !milestone.isComplete &&
+          !isComplete &&
           !isOverdue &&
           deadlineStr.includes("d remaining") &&
           parseInt(deadlineStr) <= 7;
@@ -61,18 +112,22 @@ export function MilestoneList({ milestones, showPhase = false }: MilestoneListPr
         return (
           <div
             key={milestone.id}
+            onClick={() => toggle(milestone.id)}
             className={cn(
-              "flex items-start gap-3 px-3 py-2.5 rounded-lg",
-              milestone.isComplete
+              "flex items-start gap-3 px-3 py-2.5 rounded-lg transition-colors",
+              isComplete
                 ? "bg-success/5"
                 : isOverdue
                 ? "bg-danger/5"
-                : "hover:bg-surface-50"
+                : "hover:bg-surface-50",
+              canToggle && "cursor-pointer select-none"
             )}
           >
             {/* Icon */}
             <div className="mt-0.5 shrink-0">
-              {milestone.isComplete ? (
+              {isLoading ? (
+                <Loader2 className="w-4 h-4 text-surface-400 animate-spin" />
+              ) : isComplete ? (
                 <CheckCircle2 className="w-4 h-4 text-success" />
               ) : isOverdue ? (
                 <AlertCircle className="w-4 h-4 text-danger" />
@@ -87,9 +142,7 @@ export function MilestoneList({ milestones, showPhase = false }: MilestoneListPr
                 <span
                   className={cn(
                     "text-sm font-medium",
-                    milestone.isComplete
-                      ? "line-through text-surface-400"
-                      : "text-surface-800"
+                    isComplete ? "line-through text-surface-400" : "text-surface-800"
                   )}
                 >
                   {milestone.title}

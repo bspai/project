@@ -65,6 +65,8 @@ export async function POST(
     title: string;
     deadline: string;
     technologies: string[];
+    descriptionJson?: unknown;
+    descriptionText?: string;
     milestones: Array<{ title: string; deadline: string; phaseNumber: number }>;
   } | null;
 
@@ -93,22 +95,6 @@ export async function POST(
         },
       });
 
-      // 4. Replace milestones with the approved set
-      await tx.milestone.deleteMany({
-        where: { projectId, phaseNumber: project.currentPhase },
-      });
-
-      if (snap.milestones.length > 0) {
-        await tx.milestone.createMany({
-          data: snap.milestones.map((m, i) => ({
-            title: m.title,
-            deadline: new Date(m.deadline),
-            order: i + 1,
-            phaseNumber: m.phaseNumber ?? project.currentPhase,
-            projectId,
-          })),
-        });
-      }
     }
 
     // 5. Record the signoff
