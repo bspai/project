@@ -1,7 +1,7 @@
 // src/modules/projects/components/PhaseManager.tsx
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Loader2, Plus, Pencil, Trash2, Check, X, GitBranch,
@@ -27,6 +27,10 @@ export function PhaseManager({
 }: PhaseManagerProps) {
   const router = useRouter();
   const [phases, setPhases] = useState<Phase[]>(initialPhases);
+
+  useEffect(() => {
+    setPhases(initialPhases);
+  }, [initialPhases]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editLoading, setEditLoading] = useState(false);
