@@ -6,7 +6,7 @@ import { Metadata } from "next";
 import Link from "next/link";
 import {
   ChevronLeft, Pencil, Calendar, Clock,
-  Flag, Cpu, Users, GitBranch, MessageSquare, User,
+  Flag, Cpu, Users, GitBranch, User,
 } from "lucide-react";
 import { Card, CardHeader, CardTitle } from "@/modules/shared/components/Card";
 import { Button } from "@/modules/shared/components/Button";
@@ -19,6 +19,7 @@ import { ProjectStatusBadge } from "@/modules/projects/components/ProjectStatusB
 import { VersionApprovalBar } from "@/modules/projects/components/VersionApprovalBar";
 import { WorkRequestsPanel } from "@/modules/projects/components/WorkRequestsPanel";
 import { StatusSelector } from "@/modules/projects/components/StatusSelector";
+import { CommentThread } from "@/modules/projects/components/CommentThread";
 import { formatDate, formatDateTime, formatRelative } from "@/modules/shared/utils";
 import { diffProjectVersions } from "@/lib/diff";
 import { JsonValue } from "@prisma/client/runtime/library";
@@ -71,7 +72,7 @@ export default async function ConsultantProjectDetailPage({
         },
         orderBy: { createdAt: "desc" },
       },
-      _count: { select: { workRequests: true, comments: true } },
+      _count: { select: { workRequests: true } },
     },
   });
 
@@ -256,16 +257,11 @@ export default async function ConsultantProjectDetailPage({
             />
           </Card>
 
-          <Card padding="md">
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <MessageSquare className="w-4 h-4 text-surface-400" />
-                <CardTitle>Comments</CardTitle>
-                <Badge variant="default">{project._count.comments}</Badge>
-              </div>
-            </CardHeader>
-            <p className="text-sm text-surface-400 italic">Comments will be available in Phase 7.</p>
-          </Card>
+          <CommentThread
+            projectId={project.id}
+            viewerId={session.user.id}
+            canComment={true}
+          />
         </div>
 
         {/* Right sidebar */}
