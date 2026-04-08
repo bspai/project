@@ -230,10 +230,6 @@ npm run test:ci
 | Phase 4 | Learner project search and discovery |
 | Phase 5 | Work requests + approval + state transitions |
 | Phase 6 | Collaborative signoff + defer to next phase |
-
-## Coming next
-| Phase | What gets added |
-|---|---|
-| Phase 7 | Comments section |
-| Phase 8 | Project completion |
-| Phase 9 | Analytics dashboard |
+| Phase 7 | Comments section — threaded comments with replies, edit/delete, role badges |
+| Phase 8 | Project completion — Mark as Complete modal, Reopen with reason, assignee notifications |
+| Phase 9 | Analytics dashboard — stat cards, action breakdown, project activity, recent event feed |

@@ -17,6 +17,7 @@ import {
   X,
   ChevronDown,
   Settings,
+  BarChart2,
 } from "lucide-react";
 import { cn } from "../utils";
 import { Avatar } from "./Avatar";
@@ -32,8 +33,9 @@ interface NavItem {
 function getNavItems(role: Role): NavItem[] {
   if (role === "CONSULTANT") {
     return [
-      { label: "Dashboard", href: "/consultant/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
-      { label: "My Projects", href: "/consultant/projects", icon: <FolderKanban className="w-4 h-4" /> },
+      { label: "Dashboard",   href: "/consultant/dashboard",  icon: <LayoutDashboard className="w-4 h-4" /> },
+      { label: "My Projects", href: "/consultant/projects",   icon: <FolderKanban className="w-4 h-4" /> },
+      { label: "Analytics",   href: "/consultant/analytics",  icon: <BarChart2 className="w-4 h-4" /> },
     ];
   }
   if (role === "LEARNER") {
