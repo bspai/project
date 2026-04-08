@@ -85,12 +85,12 @@ export default async function ConsultantAnalyticsPage() {
   ]);
 
   // Resolve project titles
-  const projectIds = [
-    ...new Set([
+  const projectIds = Array.from(
+    new Set([
       ...projectStats.map((e) => e.projectId).filter(Boolean) as string[],
       ...recentRaw.map((e) => e.projectId).filter(Boolean) as string[],
-    ]),
-  ];
+    ])
+  );
   const projects = projectIds.length > 0
     ? await prisma.project.findMany({
         where: { id: { in: projectIds } },
