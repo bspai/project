@@ -260,7 +260,7 @@ export default async function ConsultantProjectDetailPage({
           <CommentThread
             projectId={project.id}
             viewerId={session.user.id}
-            canComment={true}
+            canComment={project.status !== "ARCHIVED"}
           />
         </div>
 

@@ -7,6 +7,7 @@ import { z } from "zod";
 
 const schema = z.object({
   status: z.enum(["OPEN", "IN_PROGRESS", "ON_HOLD", "DONE"]),
+  reason: z.string().min(1).max(500).optional(),
 });
 
 export async function PATCH(
@@ -20,7 +21,10 @@ export async function PATCH(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const project = await prisma.project.findUnique({ where: { id: projectId } });
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    include: { assignees: { select: { learnerId: true } } },
+  });
   if (!project) {
     return NextResponse.json({ error: "Project not found" }, { status: 404 });
   }
@@ -37,11 +41,66 @@ export async function PATCH(
     return NextResponse.json({ error: "Invalid status", details: parsed.error.flatten() }, { status: 400 });
   }
 
-  const updated = await prisma.project.update({
-    where: { id: projectId },
-    data: { status: parsed.data.status, updatedAt: new Date() },
-    select: { id: true, status: true },
+  const { status, reason } = parsed.data;
+
+  // Reopening a completed project requires a reason
+  if (project.status === "DONE" && status !== "DONE" && !reason) {
+    return NextResponse.json(
+      { error: "A reason is required to reopen a completed project" },
+      { status: 400 }
+    );
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.project.update({
+      where: { id: projectId },
+      data: { status, updatedAt: new Date() },
+    });
+
+    // Transitioning TO DONE: notify all assignees + track event
+    if (status === "DONE" && project.status !== "DONE") {
+      if (project.assignees.length > 0) {
+        await tx.notification.createMany({
+          data: project.assignees.map((a) => ({
+            userId: a.learnerId,
+            type: "PROJECT_COMPLETE" as const,
+            title: "Project marked as complete",
+            body: `"${project.title}" has been marked as complete.`,
+            link: `/learner/projects/${projectId}`,
+          })),
+        });
+      }
+      await tx.usageEvent.create({
+        data: {
+          action: "project_completed",
+          entity: "project",
+          entityId: projectId,
+          projectId,
+          userId: session.user.id,
+        },
+      });
+    }
+
+    // Reopening from DONE: post system comment + track event
+    if (project.status === "DONE" && status !== "DONE" && reason) {
+      await tx.comment.create({
+        data: {
+          projectId,
+          authorId: session.user.id,
+          body: `**Project reopened** — ${reason}`,
+        },
+      });
+      await tx.usageEvent.create({
+        data: {
+          action: "project_reopened",
+          entity: "project",
+          entityId: projectId,
+          projectId,
+          userId: session.user.id,
+        },
+      });
+    }
   });
 
-  return NextResponse.json(updated);
+  return NextResponse.json({ ok: true, status });
 }
