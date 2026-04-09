@@ -1,14 +1,14 @@
 # Kaliyuva Democratic LMS Platform
 
 Project Module
-    - Project Creation UI for Consultants
-    - Project view UI for Learners
+- Project Creation UI for Consultants
+- Project view UI for Learners
 
 ### Upcoming
 
 Core module
-    - Course Consumption UI
-    - Course Creation UI
+- Course Consumption UI
+- Course Creation UI
 
 ---
 
