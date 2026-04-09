@@ -1,6 +1,14 @@
-# Kaliyuva LMS Platform
+# Kaliyuva Democratic LMS Platform
 
-Project-based learning platform connecting consultants and learners.
+Project Module
+    - Project Creation UI for Consultants
+    - Project view UI for Learners
+
+### Upcoming
+
+Core module
+    - Course Consumption UI
+    - Course Creation UI
 
 ---
 
