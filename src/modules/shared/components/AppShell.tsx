@@ -18,6 +18,7 @@ import {
   ChevronDown,
   Settings,
   BarChart2,
+  Users,
 } from "lucide-react";
 import { cn } from "../utils";
 import { Avatar } from "./Avatar";
@@ -46,6 +47,7 @@ function getNavItems(role: Role): NavItem[] {
   }
   return [
     { label: "Dashboard", href: "/admin/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
+    { label: "Users",     href: "/admin/users",     icon: <Users className="w-4 h-4" /> },
   ];
 }
 
