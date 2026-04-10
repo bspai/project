@@ -30,6 +30,11 @@ export default withAuth(
       return NextResponse.redirect(new URL("/unauthorized", req.url));
     }
 
+    // Prevent non-admins accessing admin routes
+    if (path.startsWith("/admin") && token?.role !== "ADMIN") {
+      return NextResponse.redirect(new URL("/unauthorized", req.url));
+    }
+
     return NextResponse.next();
   },
   {
@@ -37,7 +42,7 @@ export default withAuth(
       authorized: ({ token, req }) => {
         const path = req.nextUrl.pathname;
         // Public paths that don't need auth
-        const publicPaths = ["/login", "/register", "/unauthorized"];
+        const publicPaths = ["/login", "/register", "/unauthorized", "/accept-invite", "/api/admin/accept-invite"];
         if (publicPaths.some((p) => path.startsWith(p))) return true;
         return !!token;
       },

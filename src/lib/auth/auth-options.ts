@@ -49,6 +49,10 @@ export const authOptions: NextAuthOptions = {
           throw new Error("No account found with this email");
         }
 
+        if (!user.password) {
+          throw new Error("Your invitation is pending. Please use the invite link to set your password.");
+        }
+
         const isValid = await bcrypt.compare(credentials.password, user.password);
         if (!isValid) {
           throw new Error("Invalid password");
