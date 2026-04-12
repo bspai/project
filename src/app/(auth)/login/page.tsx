@@ -120,12 +120,8 @@ export default function LoginPage() {
 
           {/* Dev hint */}
           <div className="mt-6 pt-5 border-t border-white/10">
-            <p className="text-xs text-brand-400 font-medium mb-2">Development accounts</p>
-            <div className="space-y-1 text-xs text-white/50">
-              <p>[On local Setup]</p>
-              <p>consultant@kaliyuva.com / password123</p>
-              <p>learner@kaliyuva.com &nbsp;&nbsp;/ password123</p>
-            </div>
+            <p className="text-xs font-medium text-white/50 mb-2">Fill this form if you need early access to the platform. --- <a href="https://docs.google.com/forms/d/e/1FAIpQLSeH_AYPfbpf10OULizjrBoS_HpczqV4Ww26S1rS0DHtWzkZYw/viewform?usp=publish-editor" target="_blank" style={{'color': 'lightpink', 'fontWeight': 'bold'}}>Form 1</a> </p>
+            <p className="text-xs font-medium text-white/50 mb-2">For any other queries fill this form --- <a href="https://docs.google.com/forms/d/e/1FAIpQLSe3xEtm3IhRqfiqBJQyjZPCaoLEhXZKjWbUl5JaRZhPoe1lyw/viewform?usp=publish-editor" style={{'color': 'lightpink', 'fontWeight': 'bold'}} target="_blank">Form 2</a></p>
           </div>
         </div>
       </div>
