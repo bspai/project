@@ -5,11 +5,16 @@ Module: Project based learning
 - Project Creation UI for Consultants
 - Project view UI for Learners
 
-### Upcoming
-
 Module: Core
 - Course Consumption UI
 - Course Creation UI
+
+
+### Upcoming
+Module: Job
+- Job Description Creation UI
+- Job Profile Matching
+- Candidate Profile recommendations
 
 ---
 
@@ -230,15 +235,3 @@ npm run test:ci
 
 ---
 
-## Completed
-| Phase | What got added |
-|---|---|
-| Phase 1 | Project creation form — rich text, images, milestones, submit |
-| Phase 2 | Project list + detail view for consultant |
-| Phase 3 | Edit + version diffing + highlighted changes |
-| Phase 4 | Learner project search and discovery |
-| Phase 5 | Work requests + approval + state transitions |
-| Phase 6 | Collaborative signoff + defer to next phase |
-| Phase 7 | Comments section — threaded comments with replies, edit/delete, role badges |
-| Phase 8 | Project completion — Mark as Complete modal, Reopen with reason, assignee notifications |
-| Phase 9 | Analytics dashboard — stat cards, action breakdown, project activity, recent event feed |
