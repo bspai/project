@@ -16,7 +16,7 @@ export async function PUT(
   const { id: projectId, phaseId } = await params;
 
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "CONSULTANT") {
+  if (!session || !session.user.roles.includes("CONSULTANT")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -57,7 +57,7 @@ export async function DELETE(
   const { id: projectId, phaseId } = await params;
 
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "CONSULTANT") {
+  if (!session || !session.user.roles.includes("CONSULTANT")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

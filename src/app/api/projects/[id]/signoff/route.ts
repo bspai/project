@@ -48,9 +48,9 @@ export async function POST(
   }
 
   // Verify user is either the consultant creator or the assigned learner
-  const isConsultant = session.user.role === "CONSULTANT" && project.creatorId === session.user.id;
+  const isConsultant = session.user.roles.includes("CONSULTANT") && project.creatorId === session.user.id;
   const isAssignedLearner =
-    session.user.role === "LEARNER" &&
+    session.user.roles.includes("LEARNER") &&
     project.assignees.some((a) => a.learnerId === session.user.id);
 
   if (!isConsultant && !isAssignedLearner) {
@@ -86,7 +86,7 @@ export async function POST(
     data: {
       versionId,
       userId: session.user.id,
-      role: session.user.role,
+      role: isConsultant ? "CONSULTANT" : "LEARNER",
     },
   });
 
@@ -140,7 +140,7 @@ export async function POST(
       const assignedLearner = project.assignees[0];
 
       // Notify consultant (if learner was last to sign)
-      if (session.user.role === "LEARNER") {
+      if (session.user.roles.includes("LEARNER")) {
         await tx.notification.create({
           data: {
             userId: project.creatorId,
@@ -153,7 +153,7 @@ export async function POST(
       }
 
       // Notify learner (if consultant was last to sign)
-      if (session.user.role === "CONSULTANT" && assignedLearner) {
+      if (session.user.roles.includes("CONSULTANT") && assignedLearner) {
         await tx.notification.create({
           data: {
             userId: assignedLearner.learnerId,
@@ -172,7 +172,7 @@ export async function POST(
   // Only one party has signed — notify the other party
   const assignedLearner = project.assignees[0];
 
-  if (session.user.role === "CONSULTANT" && assignedLearner) {
+  if (session.user.roles.includes("CONSULTANT") && assignedLearner) {
     await prisma.notification.create({
       data: {
         userId: assignedLearner.learnerId,
@@ -182,7 +182,7 @@ export async function POST(
         link: `/learner/projects/${projectId}`,
       },
     });
-  } else if (session.user.role === "LEARNER") {
+  } else if (session.user.roles.includes("LEARNER")) {
     await prisma.notification.create({
       data: {
         userId: project.creatorId,

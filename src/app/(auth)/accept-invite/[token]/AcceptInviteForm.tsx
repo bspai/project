@@ -12,10 +12,10 @@ interface Props {
   token: string;
   email: string;
   defaultName: string;
-  role: string;
+  roles: string[];
 }
 
-export function AcceptInviteForm({ token, email, defaultName, role }: Props) {
+export function AcceptInviteForm({ token, email, defaultName, roles }: Props) {
   const router = useRouter();
   const [name, setName] = useState(defaultName);
   const [password, setPassword] = useState("");
@@ -24,10 +24,12 @@ export function AcceptInviteForm({ token, email, defaultName, role }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const roleLabel =
-    role === "CONSULTANT" ? "Consultant" : role === "ADMIN" ? "Admin" : "Learner";
-  const roleVariant: "info" | "success" | "warning" =
-    role === "CONSULTANT" ? "info" : role === "ADMIN" ? "warning" : "success";
+  function roleBadgeVariant(role: string): "info" | "success" | "warning" {
+    return role === "CONSULTANT" || role === "MENTOR" ? "info" : role === "ADMIN" ? "warning" : "success";
+  }
+  function roleBadgeLabel(role: string): string {
+    return role.charAt(0) + role.slice(1).toLowerCase();
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -63,9 +65,11 @@ export function AcceptInviteForm({ token, email, defaultName, role }: Props) {
     <div className="space-y-5">
       <div>
         <h2 className="text-xl font-semibold text-white mb-1">Set up your account</h2>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <p className="text-sm text-brand-300">{email}</p>
-          <Badge variant={roleVariant}>{roleLabel}</Badge>
+          {roles.map((r) => (
+            <Badge key={r} variant={roleBadgeVariant(r)}>{roleBadgeLabel(r)}</Badge>
+          ))}
         </div>
       </div>
 

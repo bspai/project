@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
 
   const user = await prisma.user.findUnique({
     where: { inviteToken: token },
-    select: { id: true, name: true, email: true, role: true, inviteTokenExpiry: true, password: true },
+    select: { id: true, name: true, email: true, roles: true, inviteTokenExpiry: true, password: true },
   });
 
   if (!user) {
@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     email: user.email,
     name: user.name,
-    role: user.role,
+    roles: user.roles,
   });
 }
 
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
 
   const user = await prisma.user.findUnique({
     where: { inviteToken: token },
-    select: { id: true, inviteTokenExpiry: true, password: true },
+    select: { id: true, roles: true, inviteTokenExpiry: true, password: true },
   });
 
   if (!user) {

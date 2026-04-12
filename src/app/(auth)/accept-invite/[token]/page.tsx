@@ -13,7 +13,7 @@ export default async function AcceptInvitePage({ params }: Props) {
   // Validate token server-side
   const user = await prisma.user.findUnique({
     where: { inviteToken: token },
-    select: { email: true, name: true, role: true, inviteTokenExpiry: true, password: true },
+    select: { email: true, name: true, roles: true, inviteTokenExpiry: true, password: true },
   });
 
   const isInvalid  = !user;
@@ -68,7 +68,7 @@ export default async function AcceptInvitePage({ params }: Props) {
               token={token}
               email={user!.email}
               defaultName={user!.name}
-              role={user!.role}
+              roles={user!.roles}
             />
           )}
         </div>

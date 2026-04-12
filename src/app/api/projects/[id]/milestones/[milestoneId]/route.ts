@@ -18,7 +18,7 @@ export async function PUT(
   const { id: projectId, milestoneId } = await params;
 
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "CONSULTANT") {
+  if (!session || !session.user.roles.includes("CONSULTANT")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -59,7 +59,7 @@ export async function DELETE(
   const { id: projectId, milestoneId } = await params;
 
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "CONSULTANT") {
+  if (!session || !session.user.roles.includes("CONSULTANT")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -111,9 +111,9 @@ export async function PATCH(
   }
 
   const isConsultant =
-    session.user.role === "CONSULTANT" && project.creatorId === session.user.id;
+    session.user.roles.includes("CONSULTANT") && project.creatorId === session.user.id;
   const isAssignedLearner =
-    session.user.role === "LEARNER" &&
+    session.user.roles.includes("LEARNER") &&
     project.assignees.some((a) => a.learnerId === session.user.id);
 
   if (!isConsultant && !isAssignedLearner) {

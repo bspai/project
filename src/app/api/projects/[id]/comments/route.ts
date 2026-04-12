@@ -29,9 +29,9 @@ export async function GET(
 
   // Only the consultant creator or assigned learner can read comments
   const isConsultant =
-    session.user.role === "CONSULTANT" && project.creatorId === session.user.id;
+    session.user.roles.includes("CONSULTANT") && project.creatorId === session.user.id;
   const isAssignedLearner =
-    session.user.role === "LEARNER" &&
+    session.user.roles.includes("LEARNER") &&
     project.assignees.some((a) => a.learnerId === session.user.id);
 
   if (!isConsultant && !isAssignedLearner) {
@@ -42,11 +42,11 @@ export async function GET(
     where: { projectId, parentId: null },
     orderBy: { createdAt: "asc" },
     include: {
-      author: { select: { id: true, name: true, avatar: true, role: true } },
+      author: { select: { id: true, name: true, avatar: true, roles: true } },
       replies: {
         orderBy: { createdAt: "asc" },
         include: {
-          author: { select: { id: true, name: true, avatar: true, role: true } },
+          author: { select: { id: true, name: true, avatar: true, roles: true } },
         },
       },
     },
@@ -86,9 +86,9 @@ export async function POST(
   }
 
   const isConsultant =
-    session.user.role === "CONSULTANT" && project.creatorId === session.user.id;
+    session.user.roles.includes("CONSULTANT") && project.creatorId === session.user.id;
   const isAssignedLearner =
-    session.user.role === "LEARNER" &&
+    session.user.roles.includes("LEARNER") &&
     project.assignees.some((a) => a.learnerId === session.user.id);
 
   if (!isConsultant && !isAssignedLearner) {
@@ -124,11 +124,11 @@ export async function POST(
       authorId: session.user.id,
     },
     include: {
-      author: { select: { id: true, name: true, avatar: true, role: true } },
+      author: { select: { id: true, name: true, avatar: true, roles: true } },
       replies: {
         orderBy: { createdAt: "asc" },
         include: {
-          author: { select: { id: true, name: true, avatar: true, role: true } },
+          author: { select: { id: true, name: true, avatar: true, roles: true } },
         },
       },
     },

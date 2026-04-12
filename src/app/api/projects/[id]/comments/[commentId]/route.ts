@@ -38,10 +38,10 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     where: { id: commentId },
     data: { body: parsed.data.body, isEdited: true },
     include: {
-      author: { select: { id: true, name: true, avatar: true, role: true } },
+      author: { select: { id: true, name: true, avatar: true, roles: true } },
       replies: {
         orderBy: { createdAt: "asc" },
-        include: { author: { select: { id: true, name: true, avatar: true, role: true } } },
+        include: { author: { select: { id: true, name: true, avatar: true, roles: true } } },
       },
     },
   });

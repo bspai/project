@@ -31,7 +31,7 @@ const createSchema = z.object({
 // POST /api/projects — create a new project
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "CONSULTANT") {
+  if (!session || !session.user.roles.includes("CONSULTANT")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -114,7 +114,7 @@ export async function GET(req: NextRequest) {
   const search = searchParams.get("search");
 
   const where =
-    session.user.role === "CONSULTANT"
+    session.user.roles.includes("CONSULTANT")
       ? {
           creatorId: session.user.id,
           ...(status ? { status: status as never } : {}),

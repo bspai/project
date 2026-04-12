@@ -29,7 +29,7 @@ export async function GET(
         orderBy: { versionNumber: "desc" },
         include: {
           signoffs: {
-            include: { user: { select: { id: true, name: true, role: true } } },
+            include: { user: { select: { id: true, name: true, roles: true } } },
           },
         },
       },
@@ -45,7 +45,7 @@ export async function GET(
 
   // Consultants can only view their own projects; learners can view any open/in-progress project
   if (
-    session.user.role === "CONSULTANT" &&
+    session.user.roles.includes("CONSULTANT") &&
     project.creatorId !== session.user.id
   ) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -62,7 +62,7 @@ export async function PUT(
 ) {
   const params = await props.params;
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "CONSULTANT") {
+  if (!session || !session.user.roles.includes("CONSULTANT")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
