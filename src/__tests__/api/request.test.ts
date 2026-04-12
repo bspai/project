@@ -39,7 +39,7 @@ function makeGetRequest() {
 describe("POST /api/projects/[id]/request", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockSession.value = { user: { id: learnerId, role: "LEARNER" } };
+    mockSession.value = { user: { id: learnerId, roles: ["LEARNER"] } };
     mockPrisma.project.findUnique.mockResolvedValue({
       id: projectId,
       creatorId: consultantId,
@@ -101,7 +101,7 @@ describe("POST /api/projects/[id]/request", () => {
   });
 
   it("rejects consultant role", async () => {
-    mockSession.value = { user: { id: consultantId, role: "CONSULTANT" } };
+    mockSession.value = { user: { id: consultantId, roles: ["CONSULTANT"] } };
     const res = await POST(makePostRequest(), { params });
     expect(res.status).toBe(401);
   });
@@ -116,7 +116,7 @@ describe("POST /api/projects/[id]/request", () => {
 describe("GET /api/projects/[id]/request", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockSession.value = { user: { id: consultantId, role: "CONSULTANT" } };
+    mockSession.value = { user: { id: consultantId, roles: ["CONSULTANT"] } };
     mockPrisma.project.findUnique.mockResolvedValue({
       id: projectId,
       creatorId: consultantId,
@@ -144,7 +144,7 @@ describe("GET /api/projects/[id]/request", () => {
   });
 
   it("rejects learner role", async () => {
-    mockSession.value = { user: { id: learnerId, role: "LEARNER" } };
+    mockSession.value = { user: { id: learnerId, roles: ["LEARNER"] } };
     const res = await GET(makeGetRequest(), { params });
     expect(res.status).toBe(401);
   });

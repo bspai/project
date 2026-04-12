@@ -56,31 +56,31 @@ describe("POST /api/projects", () => {
   });
 
   it("rejects LEARNER role", async () => {
-    mockSession.value = { user: { id: "u1", role: "LEARNER" } };
+    mockSession.value = { user: { id: "u1", roles: ["LEARNER"] } };
     const res = await POST(makeRequest(validBody));
     expect(res.status).toBe(401);
   });
 
   it("rejects invalid body (missing title)", async () => {
-    mockSession.value = { user: { id: "u1", role: "CONSULTANT" } };
+    mockSession.value = { user: { id: "u1", roles: ["CONSULTANT"] } };
     const res = await POST(makeRequest({ ...validBody, title: "" }));
     expect(res.status).toBe(400);
   });
 
   it("rejects empty technologies array", async () => {
-    mockSession.value = { user: { id: "u1", role: "CONSULTANT" } };
+    mockSession.value = { user: { id: "u1", roles: ["CONSULTANT"] } };
     const res = await POST(makeRequest({ ...validBody, technologies: [] }));
     expect(res.status).toBe(400);
   });
 
   it("rejects title under 3 chars", async () => {
-    mockSession.value = { user: { id: "u1", role: "CONSULTANT" } };
+    mockSession.value = { user: { id: "u1", roles: ["CONSULTANT"] } };
     const res = await POST(makeRequest({ ...validBody, title: "ab" }));
     expect(res.status).toBe(400);
   });
 
   it("creates project with valid data", async () => {
-    mockSession.value = { user: { id: "c1", role: "CONSULTANT" } };
+    mockSession.value = { user: { id: "c1", roles: ["CONSULTANT"] } };
     mockPrisma.project.create.mockResolvedValue({ id: "proj1" });
     mockPrisma.projectVersion.create.mockResolvedValue({ id: "v1" });
 
@@ -91,7 +91,7 @@ describe("POST /api/projects", () => {
   });
 
   it("creates project with correct data structure", async () => {
-    mockSession.value = { user: { id: "c1", role: "CONSULTANT" } };
+    mockSession.value = { user: { id: "c1", roles: ["CONSULTANT"] } };
     mockPrisma.project.create.mockResolvedValue({ id: "proj1" });
     mockPrisma.projectVersion.create.mockResolvedValue({ id: "v1" });
 
@@ -110,7 +110,7 @@ describe("POST /api/projects", () => {
   });
 
   it("creates version 1 as SELF_APPROVED", async () => {
-    mockSession.value = { user: { id: "c1", role: "CONSULTANT" } };
+    mockSession.value = { user: { id: "c1", roles: ["CONSULTANT"] } };
     mockPrisma.project.create.mockResolvedValue({ id: "proj1" });
     mockPrisma.projectVersion.create.mockResolvedValue({ id: "v1" });
 
@@ -129,7 +129,7 @@ describe("POST /api/projects", () => {
   });
 
   it("stores metaSnapshot on version", async () => {
-    mockSession.value = { user: { id: "c1", role: "CONSULTANT" } };
+    mockSession.value = { user: { id: "c1", roles: ["CONSULTANT"] } };
     mockPrisma.project.create.mockResolvedValue({ id: "proj1" });
     mockPrisma.projectVersion.create.mockResolvedValue({ id: "v1" });
 
@@ -158,7 +158,7 @@ describe("GET /api/projects", () => {
   });
 
   it("returns projects for consultant", async () => {
-    mockSession.value = { user: { id: "c1", role: "CONSULTANT" } };
+    mockSession.value = { user: { id: "c1", roles: ["CONSULTANT"] } };
     mockPrisma.project.findMany.mockResolvedValue([{ id: "p1", title: "Project 1" }]);
 
     const res = await GET(makeGetRequest());
@@ -168,7 +168,7 @@ describe("GET /api/projects", () => {
   });
 
   it("filters consultant projects by creatorId", async () => {
-    mockSession.value = { user: { id: "c1", role: "CONSULTANT" } };
+    mockSession.value = { user: { id: "c1", roles: ["CONSULTANT"] } };
     mockPrisma.project.findMany.mockResolvedValue([]);
 
     await GET(makeGetRequest());
@@ -181,7 +181,7 @@ describe("GET /api/projects", () => {
   });
 
   it("filters by status param", async () => {
-    mockSession.value = { user: { id: "c1", role: "CONSULTANT" } };
+    mockSession.value = { user: { id: "c1", roles: ["CONSULTANT"] } };
     mockPrisma.project.findMany.mockResolvedValue([]);
 
     await GET(makeGetRequest({ status: "OPEN" }));
@@ -194,7 +194,7 @@ describe("GET /api/projects", () => {
   });
 
   it("filters by search param", async () => {
-    mockSession.value = { user: { id: "c1", role: "CONSULTANT" } };
+    mockSession.value = { user: { id: "c1", roles: ["CONSULTANT"] } };
     mockPrisma.project.findMany.mockResolvedValue([]);
 
     await GET(makeGetRequest({ search: "React" }));
@@ -209,7 +209,7 @@ describe("GET /api/projects", () => {
   });
 
   it("learner sees OPEN projects by default", async () => {
-    mockSession.value = { user: { id: "l1", role: "LEARNER" } };
+    mockSession.value = { user: { id: "l1", roles: ["LEARNER"] } };
     mockPrisma.project.findMany.mockResolvedValue([]);
 
     await GET(makeGetRequest());

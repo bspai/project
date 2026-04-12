@@ -9,7 +9,7 @@ import crypto from "crypto";
 // GET /api/admin/users — list all users
 export async function GET() {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "ADMIN") {
+  if (!session || !session.user.roles.includes("ADMIN")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -19,7 +19,7 @@ export async function GET() {
       id: true,
       name: true,
       email: true,
-      role: true,
+      roles: true,
       createdAt: true,
       inviteToken: true,
       inviteTokenExpiry: true,
@@ -32,7 +32,7 @@ export async function GET() {
     id: u.id,
     name: u.name,
     email: u.email,
-    role: u.role,
+    roles: u.roles,
     createdAt: u.createdAt,
     status: u.password ? "active" : "pending",
     inviteExpired:
@@ -45,13 +45,13 @@ export async function GET() {
 const inviteSchema = z.object({
   email: z.string().email(),
   name: z.string().min(1).max(100),
-  role: z.enum(["CONSULTANT", "LEARNER"]),
+  roles: z.array(z.enum(["CONSULTANT", "LEARNER", "MENTOR"])).min(1),
 });
 
 // POST /api/admin/users — invite a new user
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "ADMIN") {
+  if (!session || !session.user.roles.includes("ADMIN")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { email, name, role } = parsed.data;
+  const { email, name, roles } = parsed.data;
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
     data: {
       email,
       name,
-      role,
+      roles,
       inviteToken: token,
       inviteTokenExpiry: expiry,
       // password intentionally null — set on invite acceptance
@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
   const inviteUrl = `${baseUrl}/accept-invite/${token}`;
 
   // Email skipped for now — log to console and return the link
-  console.log(`[INVITE] ${email} (${role}) → ${inviteUrl}`);
+  console.log(`[INVITE] ${email} (${roles.join(", ")}) → ${inviteUrl}`);
 
   return NextResponse.json({ inviteUrl }, { status: 201 });
 }

@@ -71,7 +71,7 @@ describe("POST /api/projects/[id]/signoff", () => {
   });
 
   it("allows consultant partial signoff", async () => {
-    mockSession.value = { user: { id: consultantId, role: "CONSULTANT" } };
+    mockSession.value = { user: { id: consultantId, roles: ["CONSULTANT"] } };
     mockPrisma.versionSignoff.findMany.mockResolvedValue([
       { role: "CONSULTANT", userId: consultantId },
     ]);
@@ -84,7 +84,7 @@ describe("POST /api/projects/[id]/signoff", () => {
   });
 
   it("allows learner partial signoff", async () => {
-    mockSession.value = { user: { id: learnerId, role: "LEARNER" } };
+    mockSession.value = { user: { id: learnerId, roles: ["LEARNER"] } };
     mockPrisma.versionSignoff.findMany.mockResolvedValue([
       { role: "LEARNER", userId: learnerId },
     ]);
@@ -96,7 +96,7 @@ describe("POST /api/projects/[id]/signoff", () => {
   });
 
   it("approves when both sign off", async () => {
-    mockSession.value = { user: { id: learnerId, role: "LEARNER" } };
+    mockSession.value = { user: { id: learnerId, roles: ["LEARNER"] } };
     mockPrisma.versionSignoff.findMany.mockResolvedValue([
       { role: "CONSULTANT", userId: consultantId },
       { role: "LEARNER", userId: learnerId },
@@ -110,7 +110,7 @@ describe("POST /api/projects/[id]/signoff", () => {
   });
 
   it("activates version on mutual signoff", async () => {
-    mockSession.value = { user: { id: learnerId, role: "LEARNER" } };
+    mockSession.value = { user: { id: learnerId, roles: ["LEARNER"] } };
     mockPrisma.versionSignoff.findMany.mockResolvedValue([
       { role: "CONSULTANT", userId: consultantId },
       { role: "LEARNER", userId: learnerId },
@@ -126,7 +126,7 @@ describe("POST /api/projects/[id]/signoff", () => {
   });
 
   it("creates notifications on mutual signoff", async () => {
-    mockSession.value = { user: { id: learnerId, role: "LEARNER" } };
+    mockSession.value = { user: { id: learnerId, roles: ["LEARNER"] } };
     mockPrisma.versionSignoff.findMany.mockResolvedValue([
       { role: "CONSULTANT", userId: consultantId },
       { role: "LEARNER", userId: learnerId },
@@ -145,7 +145,7 @@ describe("POST /api/projects/[id]/signoff", () => {
   });
 
   it("notifies other party on partial signoff", async () => {
-    mockSession.value = { user: { id: consultantId, role: "CONSULTANT" } };
+    mockSession.value = { user: { id: consultantId, roles: ["CONSULTANT"] } };
     mockPrisma.versionSignoff.findMany.mockResolvedValue([
       { role: "CONSULTANT", userId: consultantId },
     ]);
@@ -163,7 +163,7 @@ describe("POST /api/projects/[id]/signoff", () => {
   });
 
   it("rejects non-IN_PROGRESS project", async () => {
-    mockSession.value = { user: { id: consultantId, role: "CONSULTANT" } };
+    mockSession.value = { user: { id: consultantId, roles: ["CONSULTANT"] } };
     mockPrisma.project.findUnique.mockResolvedValue({ ...projectBase, status: "OPEN" });
 
     const res = await POST(makeRequest({ versionId }), { params });
@@ -171,10 +171,10 @@ describe("POST /api/projects/[id]/signoff", () => {
   });
 
   it("rejects duplicate signoff", async () => {
-    mockSession.value = { user: { id: consultantId, role: "CONSULTANT" } };
+    mockSession.value = { user: { id: consultantId, roles: ["CONSULTANT"] } };
     mockPrisma.projectVersion.findUnique.mockResolvedValue({
       ...versionBase,
-      signoffs: [{ userId: consultantId, role: "CONSULTANT" }],
+      signoffs: [{ userId: consultantId, roles: ["CONSULTANT"] }],
     });
 
     const res = await POST(makeRequest({ versionId }), { params });
@@ -182,14 +182,14 @@ describe("POST /api/projects/[id]/signoff", () => {
   });
 
   it("rejects unassigned learner", async () => {
-    mockSession.value = { user: { id: "random-learner", role: "LEARNER" } };
+    mockSession.value = { user: { id: "random-learner", roles: ["LEARNER"] } };
 
     const res = await POST(makeRequest({ versionId }), { params });
     expect(res.status).toBe(403);
   });
 
   it("rejects non-PENDING version", async () => {
-    mockSession.value = { user: { id: consultantId, role: "CONSULTANT" } };
+    mockSession.value = { user: { id: consultantId, roles: ["CONSULTANT"] } };
     mockPrisma.projectVersion.findUnique.mockResolvedValue({
       ...versionBase,
       status: "APPROVED",

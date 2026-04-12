@@ -48,6 +48,7 @@ export function roleLabel(role: string): string {
     CONSULTANT: "Consultant",
     LEARNER: "Learner",
     ADMIN: "Admin",
+    MENTOR: "Mentor",
   };
   return map[role] ?? role;
 }

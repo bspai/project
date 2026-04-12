@@ -77,7 +77,7 @@ describe("PATCH /api/projects/[id]/milestones/[milestoneId]", () => {
   });
 
   it("allows consultant to toggle a milestone", async () => {
-    mockSession.value = { user: { id: consultantId, role: "CONSULTANT" } };
+    mockSession.value = { user: { id: consultantId, roles: ["CONSULTANT"] } };
     const res = await PATCH(makeRequest(), { params });
     expect(res.status).toBe(200);
     const data = await res.json();
@@ -85,13 +85,13 @@ describe("PATCH /api/projects/[id]/milestones/[milestoneId]", () => {
   });
 
   it("allows assigned learner to toggle a milestone", async () => {
-    mockSession.value = { user: { id: learnerId, role: "LEARNER" } };
+    mockSession.value = { user: { id: learnerId, roles: ["LEARNER"] } };
     const res = await PATCH(makeRequest(), { params });
     expect(res.status).toBe(200);
   });
 
   it("advances phase when all phase milestones are complete", async () => {
-    mockSession.value = { user: { id: consultantId, role: "CONSULTANT" } };
+    mockSession.value = { user: { id: consultantId, roles: ["CONSULTANT"] } };
     mockPrisma.milestone.findMany.mockResolvedValue([
       { id: milestoneId, isComplete: true, phaseNumber: 1 },
     ]);
@@ -109,7 +109,7 @@ describe("PATCH /api/projects/[id]/milestones/[milestoneId]", () => {
   });
 
   it("does not advance phase when milestones are incomplete", async () => {
-    mockSession.value = { user: { id: consultantId, role: "CONSULTANT" } };
+    mockSession.value = { user: { id: consultantId, roles: ["CONSULTANT"] } };
     mockPrisma.milestone.update.mockResolvedValue({ ...milestoneBase, isComplete: false });
     mockPrisma.milestone.findMany.mockResolvedValue([
       { id: milestoneId, isComplete: false, phaseNumber: 1 },
@@ -123,7 +123,7 @@ describe("PATCH /api/projects/[id]/milestones/[milestoneId]", () => {
   });
 
   it("reverts phase to ACTIVE when a milestone is unchecked in a COMPLETE phase", async () => {
-    mockSession.value = { user: { id: consultantId, role: "CONSULTANT" } };
+    mockSession.value = { user: { id: consultantId, roles: ["CONSULTANT"] } };
 
     // Milestone is currently complete, toggling to incomplete
     mockPrisma.milestone.findUnique.mockResolvedValue({ ...milestoneBase, isComplete: true });
@@ -166,7 +166,7 @@ describe("PATCH /api/projects/[id]/milestones/[milestoneId]", () => {
   });
 
   it("does not revert phase when milestone unchecked in an ACTIVE phase", async () => {
-    mockSession.value = { user: { id: consultantId, role: "CONSULTANT" } };
+    mockSession.value = { user: { id: consultantId, roles: ["CONSULTANT"] } };
 
     mockPrisma.milestone.findUnique.mockResolvedValue({ ...milestoneBase, isComplete: true });
     mockPrisma.milestone.update.mockResolvedValue({ ...milestoneBase, isComplete: false });
@@ -189,13 +189,13 @@ describe("PATCH /api/projects/[id]/milestones/[milestoneId]", () => {
   });
 
   it("rejects unassigned learner", async () => {
-    mockSession.value = { user: { id: "random-learner", role: "LEARNER" } };
+    mockSession.value = { user: { id: "random-learner", roles: ["LEARNER"] } };
     const res = await PATCH(makeRequest(), { params });
     expect(res.status).toBe(403);
   });
 
   it("rejects non-IN_PROGRESS project", async () => {
-    mockSession.value = { user: { id: consultantId, role: "CONSULTANT" } };
+    mockSession.value = { user: { id: consultantId, roles: ["CONSULTANT"] } };
     mockPrisma.project.findUnique.mockResolvedValue({ ...projectBase, status: "OPEN" });
     const res = await PATCH(makeRequest(), { params });
     expect(res.status).toBe(400);
@@ -222,7 +222,7 @@ describe("PUT /api/projects/[id]/milestones/[milestoneId]", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockSession.value = { user: { id: consultantId, role: "CONSULTANT" } };
+    mockSession.value = { user: { id: consultantId, roles: ["CONSULTANT"] } };
     mockPrisma.project.findUnique.mockResolvedValue({ ...projectBase, status: "OPEN" });
     mockPrisma.milestone.findUnique.mockResolvedValue(milestoneBase);
     mockPrisma.milestone.update.mockResolvedValue({ ...milestoneBase, title: "New Title" });
@@ -237,7 +237,7 @@ describe("PUT /api/projects/[id]/milestones/[milestoneId]", () => {
   });
 
   it("rejects learner", async () => {
-    mockSession.value = { user: { id: learnerId, role: "LEARNER" } };
+    mockSession.value = { user: { id: learnerId, roles: ["LEARNER"] } };
     const res = await PUT(makeRequest(), { params });
     expect(res.status).toBe(401);
   });
@@ -278,7 +278,7 @@ describe("DELETE /api/projects/[id]/milestones/[milestoneId]", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockSession.value = { user: { id: consultantId, role: "CONSULTANT" } };
+    mockSession.value = { user: { id: consultantId, roles: ["CONSULTANT"] } };
     mockPrisma.project.findUnique.mockResolvedValue({ ...projectBase, status: "OPEN" });
     mockPrisma.milestone.findUnique.mockResolvedValue(milestoneBase);
     mockPrisma.milestone.delete.mockResolvedValue(milestoneBase);
@@ -291,7 +291,7 @@ describe("DELETE /api/projects/[id]/milestones/[milestoneId]", () => {
   });
 
   it("rejects learner", async () => {
-    mockSession.value = { user: { id: learnerId, role: "LEARNER" } };
+    mockSession.value = { user: { id: learnerId, roles: ["LEARNER"] } };
     const res = await DELETE(makeRequest(), { params });
     expect(res.status).toBe(401);
   });
@@ -329,7 +329,7 @@ describe("POST /api/projects/[id]/milestones", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockSession.value = { user: { id: consultantId, role: "CONSULTANT" } };
+    mockSession.value = { user: { id: consultantId, roles: ["CONSULTANT"] } };
     mockPrisma.project.findUnique.mockResolvedValue({ ...projectBase, status: "OPEN" });
     mockPrisma.milestone.findFirst.mockResolvedValue({ order: 2 });
     mockPrisma.milestone.create.mockResolvedValue({ id: "m-new", ...validBody, order: 3, projectId });
@@ -353,7 +353,7 @@ describe("POST /api/projects/[id]/milestones", () => {
   });
 
   it("rejects learner", async () => {
-    mockSession.value = { user: { id: learnerId, role: "LEARNER" } };
+    mockSession.value = { user: { id: learnerId, roles: ["LEARNER"] } };
     const res = await POST(makeRequest(), { params: projectParams });
     expect(res.status).toBe(401);
   });

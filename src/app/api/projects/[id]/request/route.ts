@@ -12,7 +12,7 @@ export async function POST(
   const { id: projectId } = await params;
 
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "LEARNER") {
+  if (!session || !session.user.roles.includes("LEARNER")) {
     return NextResponse.json(
       { error: "Only learners can request to work on projects" },
       { status: 401 }
@@ -87,7 +87,7 @@ export async function GET(
   const { id: projectId } = await params;
 
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "CONSULTANT") {
+  if (!session || !session.user.roles.includes("CONSULTANT")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

@@ -10,7 +10,7 @@ import { formatRelative } from "@/modules/shared/utils";
 export type CommentAuthor = {
   id: string;
   name: string;
-  role: "CONSULTANT" | "LEARNER";
+  roles: string[];
   avatar: string | null;
 };
 
@@ -115,8 +115,10 @@ export function CommentItem({
           {/* Header */}
           <div className="flex items-center gap-2 flex-wrap mb-1">
             <span className="text-sm font-medium text-surface-900">{comment.author.name}</span>
-            <Badge variant={comment.author.role === "CONSULTANT" ? "info" : "success"}>
-              {comment.author.role === "CONSULTANT" ? "Consultant" : "Learner"}
+            <Badge variant={comment.author.roles.includes("CONSULTANT") ? "info" : comment.author.roles.includes("MENTOR") ? "info" : "success"}>
+              {comment.author.roles[0]
+                ? comment.author.roles[0].charAt(0) + comment.author.roles[0].slice(1).toLowerCase()
+                : "Learner"}
             </Badge>
             <span className="text-xs text-surface-400">{formatRelative(comment.createdAt)}</span>
             {comment.isEdited && (

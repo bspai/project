@@ -11,7 +11,7 @@ export function InviteUserForm() {
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
-  const [role, setRole] = useState<"CONSULTANT" | "LEARNER">("LEARNER");
+  const [role, setRole] = useState<"CONSULTANT" | "LEARNER" | "MENTOR">("LEARNER");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
@@ -34,7 +34,7 @@ export function InviteUserForm() {
       const res = await fetch("/api/admin/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, name, role }),
+        body: JSON.stringify({ email, name, roles: [role] }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to send invite");
@@ -148,12 +148,13 @@ export function InviteUserForm() {
                   <label className="text-xs font-medium text-surface-700">Role</label>
                   <select
                     value={role}
-                    onChange={(e) => setRole(e.target.value as "CONSULTANT" | "LEARNER")}
+                    onChange={(e) => setRole(e.target.value as "CONSULTANT" | "LEARNER" | "MENTOR")}
                     disabled={loading}
                     className="w-full h-9 px-3 rounded-lg border border-surface-200 text-sm text-surface-900 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"
                   >
                     <option value="LEARNER">Learner</option>
                     <option value="CONSULTANT">Consultant</option>
+                    <option value="MENTOR">Mentor</option>
                   </select>
                 </div>
                 {error && <p className="text-xs text-danger">{error}</p>}

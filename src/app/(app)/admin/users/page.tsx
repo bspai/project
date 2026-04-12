@@ -20,7 +20,7 @@ export default async function AdminUsersPage() {
       id: true,
       name: true,
       email: true,
-      role: true,
+      roles: true,
       createdAt: true,
       password: true,
       inviteTokenExpiry: true,
@@ -91,9 +91,13 @@ export default async function AdminUsersPage() {
                     <p className="text-xs text-surface-500">{user.email}</p>
                   </div>
 
-                  <Badge variant={user.role === "CONSULTANT" ? "info" : user.role === "ADMIN" ? "warning" : "success"}>
-                    {user.role.charAt(0) + user.role.slice(1).toLowerCase()}
-                  </Badge>
+                  <div className="flex gap-1 flex-wrap">
+                    {user.roles.map((r) => (
+                      <Badge key={r} variant={r === "CONSULTANT" || r === "MENTOR" ? "info" : r === "ADMIN" ? "warning" : "success"}>
+                        {r.charAt(0) + r.slice(1).toLowerCase()}
+                      </Badge>
+                    ))}
+                  </div>
 
                   {isActive ? (
                     <Badge variant="success" dot>Active</Badge>
