@@ -175,13 +175,14 @@ export function AppShell({ user, children }: AppShellProps) {
 
             {userMenuOpen && (
               <div className="absolute bottom-full left-0 right-0 mb-1 bg-white border border-surface-200 rounded-xl shadow-panel py-1 z-50">
-                <button
+                <Link
+                  href="/settings"
+                  onClick={() => setUserMenuOpen(false)}
                   className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-surface-700 hover:bg-surface-50 transition-colors"
-                  onClick={() => {}}
                 >
                   <Settings className="w-4 h-4 text-surface-400" />
                   Settings
-                </button>
+                </Link>
                 <button
                   className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-danger hover:bg-danger/5 transition-colors"
                   onClick={() => signOut({ callbackUrl: "/login" })}
