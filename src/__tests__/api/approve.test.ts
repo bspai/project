@@ -37,7 +37,7 @@ const params = Promise.resolve({ id: projectId });
 describe("POST /api/projects/[id]/approve", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockSession.value = { user: { id: consultantId, role: "CONSULTANT" } };
+    mockSession.value = { user: { id: consultantId, roles: ["CONSULTANT"] } };
 
     mockPrisma.project.findUnique.mockResolvedValue({
       id: projectId,

@@ -43,7 +43,7 @@ describe("Description Persistence Across Phases", () => {
     const descriptionJson = { type: "doc", content: [] };
     const descriptionText = "Updated project description";
 
-    mockSession.value = { user: { id: consultantId, role: "CONSULTANT" } };
+    mockSession.value = { user: { id: consultantId, roles: ["CONSULTANT"] } };
     mockPrisma.project.findUnique.mockResolvedValue({
       id: projectId,
       creatorId: consultantId,

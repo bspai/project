@@ -38,7 +38,7 @@ const validBody = {
 describe("POST /api/projects/[id]/versions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockSession.value = { user: { id: consultantId, role: "CONSULTANT" } };
+    mockSession.value = { user: { id: consultantId, roles: ["CONSULTANT"] } };
     mockPrisma.project.findUnique.mockResolvedValue({
       id: projectId,
       creatorId: consultantId,
@@ -90,13 +90,13 @@ describe("POST /api/projects/[id]/versions", () => {
   });
 
   it("rejects non-consultant", async () => {
-    mockSession.value = { user: { id: "l1", role: "LEARNER" } };
+    mockSession.value = { user: { id: "l1", roles: ["LEARNER"] } };
     const res = await POST(makeRequest(validBody), { params });
     expect(res.status).toBe(401);
   });
 
   it("rejects non-owner consultant", async () => {
-    mockSession.value = { user: { id: "other-consultant", role: "CONSULTANT" } };
+    mockSession.value = { user: { id: "other-consultant", roles: ["CONSULTANT"] } };
     const res = await POST(makeRequest(validBody), { params });
     expect(res.status).toBe(403);
   });
