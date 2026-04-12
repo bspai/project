@@ -32,7 +32,7 @@ export async function seedTestData() {
       email: "consultant@test.com",
       name: "Test Consultant",
       password: hashedPassword,
-      role: Role.CONSULTANT,
+      roles: [Role.CONSULTANT],
       bio: "Test consultant",
     },
   });
@@ -42,7 +42,7 @@ export async function seedTestData() {
       email: "learner@test.com",
       name: "Test Learner",
       password: hashedPassword,
-      role: Role.LEARNER,
+      roles: [Role.LEARNER],
       bio: "Test learner",
     },
   });
@@ -52,7 +52,7 @@ export async function seedTestData() {
       email: "admin@test.com",
       name: "Test Admin",
       password: hashedPassword,
-      role: Role.ADMIN,
+      roles: [Role.ADMIN],
     },
   });
 

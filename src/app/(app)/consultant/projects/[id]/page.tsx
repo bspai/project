@@ -62,7 +62,7 @@ export default async function ConsultantProjectDetailPage({
         orderBy: { versionNumber: "desc" },
         include: {
           signoffs: {
-            include: { user: { select: { id: true, name: true, role: true } } },
+            include: { user: { select: { id: true, name: true } } },
           },
         },
       },
@@ -126,7 +126,7 @@ export default async function ConsultantProjectDetailPage({
     ? pendingVersion.signoffs.map((s) => ({
         userId: s.user.id,
         userName: s.user.name,
-        role: s.user.role,
+        role: s.role,
       }))
     : [];
 

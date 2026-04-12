@@ -8,17 +8,17 @@ async function main() {
   console.log("🌱 Seeding database...");
 
   // Clear existing data
-  await prisma.usageEvent.deleteMany();
-  await prisma.notification.deleteMany();
-  await prisma.comment.deleteMany();
-  await prisma.workRequest.deleteMany();
-  await prisma.projectAssignee.deleteMany();
-  await prisma.versionSignoff.deleteMany();
-  await prisma.projectVersion.deleteMany();
-  await prisma.milestone.deleteMany();
-  await prisma.projectPhase.deleteMany();
-  await prisma.project.deleteMany();
-  await prisma.user.deleteMany();
+  // await prisma.usageEvent.deleteMany();
+  // await prisma.notification.deleteMany();
+  // await prisma.comment.deleteMany();
+  // await prisma.workRequest.deleteMany();
+  // await prisma.projectAssignee.deleteMany();
+  // await prisma.versionSignoff.deleteMany();
+  // await prisma.projectVersion.deleteMany();
+  // await prisma.milestone.deleteMany();
+  // await prisma.projectPhase.deleteMany();
+  // await prisma.project.deleteMany();
+  // await prisma.user.deleteMany();
 
   const hashedPassword = await bcrypt.hash("password123", 12);
 
@@ -28,7 +28,7 @@ async function main() {
       email: "consultant@kaliyuva.com",
       name: "Arjun Rao",
       password: hashedPassword,
-      role: Role.CONSULTANT,
+      roles: [Role.CONSULTANT],
       bio: "Senior full-stack consultant with 10 years of experience.",
     },
   });
@@ -39,8 +39,19 @@ async function main() {
       email: "learner@kaliyuva.com",
       name: "Priya Sharma",
       password: hashedPassword,
-      role: Role.LEARNER,
+      roles: [Role.LEARNER],
       bio: "Aspiring developer looking to build real-world projects.",
+    },
+  });
+
+  // Create mentor user
+  await prisma.user.create({
+    data: {
+      email: "mentor@kaliyuva.com",
+      name: "Deepa Nair",
+      password: hashedPassword,
+      roles: [Role.MENTOR],
+      bio: "Experienced educator specialising in web development and cloud technologies.",
     },
   });
 
@@ -50,7 +61,7 @@ async function main() {
       email: "admin@kaliyuva.com",
       name: "Admin User",
       password: hashedPassword,
-      role: Role.ADMIN,
+      roles: [Role.ADMIN],
     },
   });
 
@@ -186,6 +197,7 @@ async function main() {
   console.log("\n📋 Test Accounts:");
   console.log("  Consultant: consultant@kaliyuva.com / password123");
   console.log("  Learner:    learner@kaliyuva.com    / password123");
+  console.log("  Mentor:     mentor@kaliyuva.com     / password123");
   console.log("  Admin:      admin@kaliyuva.com      / password123");
 }
 

@@ -6,32 +6,38 @@ export default withAuth(
   function middleware(req) {
     const token = req.nextauth.token;
     const path = req.nextUrl.pathname;
+    const roles = token?.roles ?? [];
 
     // Redirect root to role-appropriate dashboard
     if (path === "/") {
-      if (token?.role === "CONSULTANT") {
-        return NextResponse.redirect(new URL("/consultant/dashboard", req.url));
-      }
-      if (token?.role === "LEARNER") {
-        return NextResponse.redirect(new URL("/learner/dashboard", req.url));
-      }
-      if (token?.role === "ADMIN") {
-        return NextResponse.redirect(new URL("/admin/dashboard", req.url));
-      }
+      if (roles.includes("ADMIN"))      return NextResponse.redirect(new URL("/admin/dashboard", req.url));
+      if (roles.includes("CONSULTANT")) return NextResponse.redirect(new URL("/consultant/dashboard", req.url));
+      if (roles.includes("MENTOR"))     return NextResponse.redirect(new URL("/mentor/dashboard", req.url));
+      if (roles.includes("LEARNER"))    return NextResponse.redirect(new URL("/learner/dashboard", req.url));
     }
 
-    // Prevent learners accessing consultant routes
-    if (path.startsWith("/consultant") && token?.role !== "CONSULTANT" && token?.role !== "ADMIN") {
+    // Consultant routes — CONSULTANT or ADMIN only
+    if (path.startsWith("/consultant") && !roles.includes("CONSULTANT") && !roles.includes("ADMIN")) {
       return NextResponse.redirect(new URL("/unauthorized", req.url));
     }
 
-    // Prevent consultants accessing learner routes
-    if (path.startsWith("/learner") && token?.role !== "LEARNER" && token?.role !== "ADMIN") {
+    // Learner routes — LEARNER, MENTOR (can also take courses), or ADMIN
+    if (
+      path.startsWith("/learner") &&
+      !roles.includes("LEARNER") &&
+      !roles.includes("MENTOR") &&
+      !roles.includes("ADMIN")
+    ) {
       return NextResponse.redirect(new URL("/unauthorized", req.url));
     }
 
-    // Prevent non-admins accessing admin routes
-    if (path.startsWith("/admin") && token?.role !== "ADMIN") {
+    // Mentor routes — MENTOR or ADMIN only
+    if (path.startsWith("/mentor") && !roles.includes("MENTOR") && !roles.includes("ADMIN")) {
+      return NextResponse.redirect(new URL("/unauthorized", req.url));
+    }
+
+    // Admin routes — ADMIN only
+    if (path.startsWith("/admin") && !roles.includes("ADMIN")) {
       return NextResponse.redirect(new URL("/unauthorized", req.url));
     }
 
@@ -41,7 +47,6 @@ export default withAuth(
     callbacks: {
       authorized: ({ token, req }) => {
         const path = req.nextUrl.pathname;
-        // Public paths that don't need auth
         const publicPaths = ["/login", "/register", "/unauthorized", "/accept-invite", "/api/admin/accept-invite"];
         if (publicPaths.some((p) => path.startsWith(p))) return true;
         return !!token;

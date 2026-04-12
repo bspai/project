@@ -1,5 +1,5 @@
 // src/lib/auth/session.ts
-import { getServerSession } from "next-auth";
+import { getServerSession, Session } from "next-auth";
 import { authOptions } from "./auth-options";
 import { redirect } from "next/navigation";
 import { Role } from "@prisma/client";
@@ -16,7 +16,7 @@ export async function requireAuth() {
 
 export async function requireRole(role: Role) {
   const session = await requireAuth();
-  if (session.user.role !== role) {
+  if (!session.user.roles.includes(role)) {
     redirect("/unauthorized");
   }
   return session;
@@ -24,8 +24,13 @@ export async function requireRole(role: Role) {
 
 export async function requireAnyRole(roles: Role[]) {
   const session = await requireAuth();
-  if (!roles.includes(session.user.role)) {
+  if (!roles.some((r) => session.user.roles.includes(r))) {
     redirect("/unauthorized");
   }
   return session;
+}
+
+/** Non-redirecting helper — use in API routes or conditional logic */
+export function hasRole(session: Session, role: Role): boolean {
+  return session.user.roles.includes(role);
 }

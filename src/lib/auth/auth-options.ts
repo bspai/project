@@ -8,14 +8,14 @@ import { Role } from "@prisma/client";
 declare module "next-auth" {
   interface User {
     id: string;
-    role: Role;
+    roles: Role[];
   }
   interface Session {
     user: {
       id: string;
       email: string;
       name: string;
-      role: Role;
+      roles: Role[];
       image?: string | null;
     };
   }
@@ -24,7 +24,7 @@ declare module "next-auth" {
 declare module "next-auth/jwt" {
   interface JWT {
     id: string;
-    role: Role;
+    roles: Role[];
   }
 }
 
@@ -62,7 +62,7 @@ export const authOptions: NextAuthOptions = {
           id: user.id,
           email: user.email,
           name: user.name,
-          role: user.role,
+          roles: user.roles,
           image: user.avatar,
         };
       },
@@ -73,14 +73,14 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.role = user.role;
+        token.roles = user.roles;
       }
       return token;
     },
     async session({ session, token }) {
       if (token) {
         session.user.id = token.id;
-        session.user.role = token.role;
+        session.user.roles = token.roles;
       }
       return session;
     },

@@ -17,7 +17,7 @@ export async function PATCH(
   const { id: projectId } = await params;
 
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "CONSULTANT") {
+  if (!session || !session.user.roles.includes("CONSULTANT")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

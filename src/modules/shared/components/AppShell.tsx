@@ -19,6 +19,7 @@ import {
   Settings,
   BarChart2,
   Users,
+  GraduationCap,
 } from "lucide-react";
 import { cn } from "../utils";
 import { Avatar } from "./Avatar";
@@ -31,24 +32,41 @@ interface NavItem {
   icon: React.ReactNode;
 }
 
-function getNavItems(role: Role): NavItem[] {
-  if (role === "CONSULTANT") {
-    return [
+function getNavItems(roles: Role[]): NavItem[] {
+  const items: NavItem[] = [];
+
+  if (roles.includes("CONSULTANT")) {
+    items.push(
       { label: "Dashboard",   href: "/consultant/dashboard",  icon: <LayoutDashboard className="w-4 h-4" /> },
       { label: "My Projects", href: "/consultant/projects",   icon: <FolderKanban className="w-4 h-4" /> },
+      { label: "Courses",     href: "/consultant/courses",    icon: <GraduationCap className="w-4 h-4" /> },
       { label: "Analytics",   href: "/consultant/analytics",  icon: <BarChart2 className="w-4 h-4" /> },
-    ];
+    );
   }
-  if (role === "LEARNER") {
-    return [
-      { label: "Dashboard", href: "/learner/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
-      { label: "Browse Projects", href: "/learner/projects", icon: <Search className="w-4 h-4" /> },
-    ];
+
+  if (roles.includes("MENTOR")) {
+    items.push(
+      { label: "My Courses",  href: "/mentor/courses",        icon: <GraduationCap className="w-4 h-4" /> },
+    );
   }
-  return [
-    { label: "Dashboard", href: "/admin/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
-    { label: "Users",     href: "/admin/users",     icon: <Users className="w-4 h-4" /> },
-  ];
+
+  if (roles.includes("LEARNER")) {
+    items.push(
+      { label: "Dashboard",        href: "/learner/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
+      { label: "Browse Projects",  href: "/learner/projects",  icon: <Search className="w-4 h-4" /> },
+      { label: "Courses",          href: "/learner/courses",   icon: <GraduationCap className="w-4 h-4" /> },
+    );
+  }
+
+  if (roles.includes("ADMIN")) {
+    items.push(
+      { label: "Dashboard", href: "/admin/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
+      { label: "Users",     href: "/admin/users",     icon: <Users className="w-4 h-4" /> },
+      { label: "Courses",   href: "/admin/courses",   icon: <GraduationCap className="w-4 h-4" /> },
+    );
+  }
+
+  return items;
 }
 
 interface AppShellProps {
@@ -56,7 +74,7 @@ interface AppShellProps {
     id: string;
     name: string;
     email: string;
-    role: Role;
+    roles: Role[];
     image?: string | null;
   };
   children: React.ReactNode;
@@ -66,11 +84,8 @@ export function AppShell({ user, children }: AppShellProps) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const navItems = getNavItems(user.role);
+  const navItems = getNavItems(user.roles);
 
-  const roleBadgeVariant =
-    user.role === "CONSULTANT" ? "info" :
-    user.role === "LEARNER" ? "success" : "warning";
 
   return (
     <div className="flex h-screen bg-surface-50 overflow-hidden">
@@ -107,11 +122,17 @@ export function AppShell({ user, children }: AppShellProps) {
           </button>
         </div>
 
-        {/* Role badge */}
-        <div className="px-5 pt-4 pb-2">
-          <Badge variant={roleBadgeVariant} dot>
-            {roleLabel(user.role)}
-          </Badge>
+        {/* Role badge(s) */}
+        <div className="px-5 pt-4 pb-2 flex flex-wrap gap-1">
+          {user.roles.map((r) => (
+            <Badge
+              key={r}
+              variant={r === "CONSULTANT" || r === "MENTOR" ? "info" : r === "LEARNER" ? "success" : "warning"}
+              dot
+            >
+              {roleLabel(r)}
+            </Badge>
+          ))}
         </div>
 
         {/* Nav items */}
@@ -154,13 +175,14 @@ export function AppShell({ user, children }: AppShellProps) {
 
             {userMenuOpen && (
               <div className="absolute bottom-full left-0 right-0 mb-1 bg-white border border-surface-200 rounded-xl shadow-panel py-1 z-50">
-                <button
+                <Link
+                  href="/settings"
+                  onClick={() => setUserMenuOpen(false)}
                   className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-surface-700 hover:bg-surface-50 transition-colors"
-                  onClick={() => {}}
                 >
                   <Settings className="w-4 h-4 text-surface-400" />
                   Settings
-                </button>
+                </Link>
                 <button
                   className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-danger hover:bg-danger/5 transition-colors"
                   onClick={() => signOut({ callbackUrl: "/login" })}
@@ -185,13 +207,11 @@ export function AppShell({ user, children }: AppShellProps) {
             <Menu className="w-5 h-5" />
           </button>
 
-          {/* Page title will be set per-page via next/head or h1 */}
           <div className="flex-1" />
 
           {/* Notifications */}
           <button className="relative w-9 h-9 rounded-lg flex items-center justify-center text-surface-500 hover:text-surface-700 hover:bg-surface-100 transition-all">
             <Bell className="w-5 h-5" />
-            {/* Notification dot — wired up in Phase 5 */}
             <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-accent-500 rounded-full" />
           </button>
 
