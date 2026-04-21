@@ -96,9 +96,9 @@ export async function PUT(
   );
 
   // IDs to delete (in DB but absent from payload)
-  const moduleIdsToDelete = [...existingModuleIds].filter((id) => !payloadModuleIds.has(id));
-  const lessonIdsToDelete = [...existingLessonIds].filter((id) => !payloadLessonIds.has(id));
-  const blockIdsToDelete = [...existingBlockIds].filter((id) => !payloadBlockIds.has(id));
+  const moduleIdsToDelete = Array.from(existingModuleIds).filter((id) => !payloadModuleIds.has(id));
+  const lessonIdsToDelete = Array.from(existingLessonIds).filter((id) => !payloadLessonIds.has(id));
+  const blockIdsToDelete = Array.from(existingBlockIds).filter((id) => !payloadBlockIds.has(id));
 
   // ── temp ID → real ID maps (filled during transaction) ─────────────────────
   const moduleIdMap: Record<string, string> = {};
@@ -137,19 +137,19 @@ export async function PUT(
       //    constraint collisions while we reorder them.
       if (existingModuleIds.size > 0) {
         await tx.courseModule.updateMany({
-          where: { courseId, id: { in: [...existingModuleIds] } },
+          where: { courseId, id: { in: Array.from(existingModuleIds) } },
           data: { order: { increment: OFFSET } },
         });
       }
       if (existingLessonIds.size > 0) {
         await tx.lesson.updateMany({
-          where: { id: { in: [...existingLessonIds] } },
+          where: { id: { in: Array.from(existingLessonIds) } },
           data: { order: { increment: OFFSET } },
         });
       }
       if (existingBlockIds.size > 0) {
         await tx.contentBlock.updateMany({
-          where: { id: { in: [...existingBlockIds] } },
+          where: { id: { in: Array.from(existingBlockIds) } },
           data: { order: { increment: OFFSET } },
         });
       }
