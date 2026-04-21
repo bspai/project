@@ -61,6 +61,7 @@ const updateSchema = z.object({
   title: z.string().min(1).max(200).optional(),
   duration: z.number().int().positive().nullable().optional(),
   order: z.number().int().positive().optional(),
+  moduleId: z.string().optional(), // for cross-module moves
 });
 
 // PATCH /api/courses/[id]/modules/[moduleId]/lessons/[lessonId]
@@ -89,9 +90,24 @@ export async function PATCH(
     );
   }
 
+  const { moduleId: targetModuleId, ...rest } = parsed.data;
+
+  // Validate target module belongs to same course when moving cross-module
+  if (targetModuleId && targetModuleId !== moduleId) {
+    const targetModule = await prisma.courseModule.findFirst({
+      where: { id: targetModuleId, courseId: id },
+    });
+    if (!targetModule) {
+      return NextResponse.json({ error: "Target module not found in this course" }, { status: 404 });
+    }
+  }
+
   const updated = await prisma.lesson.update({
     where: { id: lessonId },
-    data: parsed.data,
+    data: {
+      ...rest,
+      ...(targetModuleId ? { moduleId: targetModuleId } : {}),
+    },
   });
 
   return NextResponse.json(updated);

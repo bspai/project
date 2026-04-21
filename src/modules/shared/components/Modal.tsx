@@ -12,13 +12,21 @@ interface ModalProps {
   description?: string;
   children: ReactNode;
   footer?: ReactNode;
-  size?: "sm" | "md" | "lg";
+  size?: "sm" | "md" | "lg" | "xl";
 }
 
 const sizeClasses = {
-  sm: "max-w-md",
-  md: "max-w-lg",
-  lg: "max-w-2xl",
+  sm: "w-[90vw] max-w-md",
+  md: "w-[90vw] max-w-lg",
+  lg: "w-[90vw] max-w-2xl",
+  xl: "w-[90vw] min-w-[60vw]",
+};
+
+const bodyHeightClasses = {
+  sm: "max-h-[60vh]",
+  md: "max-h-[60vh]",
+  lg: "max-h-[60vh]",
+  xl: "max-h-[80vh]",
 };
 
 export function Modal({
@@ -62,7 +70,7 @@ export function Modal({
     >
       <div
         className={cn(
-          "bg-white rounded-2xl shadow-xl w-[90vw] overflow-hidden",
+          "bg-white rounded-2xl shadow-xl overflow-hidden",
           sizeClasses[size]
         )}
       >
@@ -84,7 +92,7 @@ export function Modal({
         </div>
 
         {/* Body */}
-        <div className="px-6 py-5 max-h-[60vh] overflow-y-auto">{children}</div>
+        <div className={cn("px-6 py-5 overflow-y-auto", bodyHeightClasses[size])}>{children}</div>
 
         {/* Footer */}
         {footer && (
