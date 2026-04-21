@@ -9,6 +9,7 @@ import {
   FileText, Video, Headphones, Image, Clock, Globe,
 } from "lucide-react";
 import { Button } from "@/modules/shared/components/Button";
+import { RichTextViewer } from "@/modules/projects/components";
 import { ContentBlockType } from "@prisma/client";
 
 interface Block {
@@ -39,6 +40,10 @@ function BlockRenderer({ block }: { block: Block }) {
 
   switch (block.type) {
     case "TEXT":
+      if (payload.content && typeof payload.content === "object") {
+        return <RichTextViewer content={payload.content as import("@prisma/client/runtime/library").JsonValue} className="prose prose-sm max-w-none" />;
+      }
+      // Legacy plain-text fallback
       return (
         <div className="prose prose-sm max-w-none text-surface-800 whitespace-pre-line leading-relaxed">
           {String(payload.text ?? "")}
