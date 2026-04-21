@@ -28,6 +28,7 @@ const updateSchema = z.object({
   title: z.string().max(200).nullable().optional(),
   payload: z.record(z.unknown()).optional(),
   order: z.number().int().positive().optional(),
+  lessonId: z.string().optional(), // for cross-lesson moves
 });
 
 // PATCH /api/courses/[id]/modules/[moduleId]/lessons/[lessonId]/blocks/[blockId]
@@ -40,7 +41,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { lessonId, blockId } = await params;
+  const { id: courseId, lessonId, blockId } = await params;
   const block = await getBlock(lessonId, blockId);
   if (!block) return NextResponse.json({ error: "Not found" }, { status: 404 });
   if (block.lesson.module.course.creatorId !== session.user.id) {
@@ -56,11 +57,26 @@ export async function PATCH(
     );
   }
 
-  const { payload, ...rest } = parsed.data;
+  const { payload, lessonId: targetLessonId, ...rest } = parsed.data;
+
+  // Validate target lesson belongs to same course when moving cross-lesson
+  if (targetLessonId && targetLessonId !== lessonId) {
+    const targetLesson = await prisma.lesson.findFirst({
+      where: {
+        id: targetLessonId,
+        module: { courseId },
+      },
+    });
+    if (!targetLesson) {
+      return NextResponse.json({ error: "Target lesson not found in this course" }, { status: 404 });
+    }
+  }
+
   const updated = await prisma.contentBlock.update({
     where: { id: blockId },
     data: {
       ...rest,
+      ...(targetLessonId ? { lessonId: targetLessonId } : {}),
       ...(payload !== undefined ? { payload: payload as InputJsonValue } : {}),
     },
   });
