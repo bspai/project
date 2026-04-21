@@ -1,7 +1,7 @@
 // src/app/(app)/mentor/courses/[id]/CourseBuilder.tsx
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, createContext, useContext } from "react";
 import { useRouter } from "next/navigation";
 import {
   GraduationCap, Plus, Trash2, ChevronDown, ChevronRight,
@@ -36,6 +36,12 @@ import { Card } from "@/modules/shared/components/Card";
 import { Modal } from "@/modules/shared/components/Modal";
 import { ContentBlockType } from "@prisma/client";
 import { formatDate } from "@/modules/shared/utils";
+
+// ─── Edit-mode context ────────────────────────────────────────────────────────
+// True while the user is in edit mode (changes are local; Save commits them).
+const EditModeContext = createContext(false);
+const useEditMode = () => useContext(EditModeContext);
+const makeTempId = () => `temp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -120,15 +126,25 @@ function InlineEdit({
   onSave,
   className = "",
   placeholder = "Untitled",
+  readOnly = false,
 }: {
   value: string;
   onSave: (val: string) => Promise<void>;
   className?: string;
   placeholder?: string;
+  readOnly?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
   const [saving, setSaving] = useState(false);
+
+  if (readOnly) {
+    return (
+      <span className={className}>
+        {value || <span className="text-surface-400 italic">{placeholder}</span>}
+      </span>
+    );
+  }
 
   async function save() {
     if (!draft.trim() || draft === value) { setEditing(false); setDraft(value); return; }
@@ -198,6 +214,8 @@ function AddBlockModal({
     return match ? match[1] : code.trim();
   }
 
+  const isEditing = useEditMode();
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -208,6 +226,20 @@ function AddBlockModal({
         : isIframe
         ? { src: extractSrc(embedCode) }
         : { url };
+
+      if (isEditing) {
+        // In edit mode: create a local temp block, skip the API
+        onAdded({
+          id: makeTempId(),
+          type,
+          title: blockTitle || null,
+          payload,
+          order: 0, // order is assigned by position in the array on save
+        });
+        onClose();
+        return;
+      }
+
       const requestBody = { type, title: blockTitle || undefined, payload };
       const res = await fetch(
         `/api/courses/${courseId}/modules/${moduleId}/lessons/${lessonId}/blocks`,
@@ -358,6 +390,7 @@ function EditBlockModal({
   const [embedSrc, setEmbedSrc] = useState(isIframe ? String(payload.src ?? "") : "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const isEditing = useEditMode();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -369,6 +402,14 @@ function EditBlockModal({
         : isIframe
         ? { src: embedSrc }
         : { url };
+
+      if (isEditing) {
+        // In edit mode: update block locally, skip the API
+        onSaved({ ...block, title: blockTitle || null, payload: newPayload });
+        onClose();
+        return;
+      }
+
       const res = await fetch(
         `/api/courses/${courseId}/modules/${moduleId}/lessons/${lessonId}/blocks/${block.id}`,
         {
@@ -643,6 +684,7 @@ function LessonRow({
   onDelete: (lessonId: string) => void;
   onBlocksChange: (blocks: Block[]) => void;
 }) {
+  const isEditing = useEditMode();
   const [expanded, setExpanded] = useState(false);
   const [addingBlock, setAddingBlock] = useState(false);
   const [editingBlock, setEditingBlock] = useState<Block | null>(null);
@@ -660,29 +702,33 @@ function LessonRow({
   };
 
   async function saveTitle(title: string) {
+    onUpdate({ ...lesson, title }); // always update local state
+    if (isEditing) return;
     await fetch(`/api/courses/${courseId}/modules/${moduleId}/lessons/${lesson.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title }),
     });
-    onUpdate({ ...lesson, title });
   }
 
   async function deleteLesson() {
     if (!confirm(`Delete lesson "${lesson.title}"? This cannot be undone.`)) return;
+    onDelete(lesson.id); // always update local state
+    if (isEditing) return;
     await fetch(`/api/courses/${courseId}/modules/${moduleId}/lessons/${lesson.id}`, {
       method: "DELETE",
     });
-    onDelete(lesson.id);
   }
 
   async function deleteBlock(blockId: string) {
     setDeletingBlock(blockId);
-    await fetch(
-      `/api/courses/${courseId}/modules/${moduleId}/lessons/${lesson.id}/blocks/${blockId}`,
-      { method: "DELETE" }
-    );
-    onBlocksChange(blocks.filter((b) => b.id !== blockId));
+    onBlocksChange(blocks.filter((b) => b.id !== blockId)); // always update local state
+    if (!isEditing) {
+      await fetch(
+        `/api/courses/${courseId}/modules/${moduleId}/lessons/${lesson.id}/blocks/${blockId}`,
+        { method: "DELETE" }
+      );
+    }
     setDeletingBlock(null);
   }
 
@@ -798,6 +844,7 @@ function ModuleSection({
   onUpdate: (updated: Module) => void;
   onDelete: (moduleId: string) => void;
 }) {
+  const isEditing = useEditMode();
   const [expanded, setExpanded] = useState(true);
   const [addingLesson, setAddingLesson] = useState(false);
   const [newLessonTitle, setNewLessonTitle] = useState("");
@@ -821,23 +868,40 @@ function ModuleSection({
   }
 
   async function saveModuleTitle(title: string) {
+    onUpdate({ ...mod, title }); // always update local state
+    if (isEditing) return;
     await fetch(`/api/courses/${courseId}/modules/${mod.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title }),
     });
-    onUpdate({ ...mod, title });
   }
 
   async function deleteModule() {
     if (!confirm(`Delete module "${mod.title}" and all its lessons? This cannot be undone.`)) return;
+    onDelete(mod.id); // always update local state
+    if (isEditing) return;
     await fetch(`/api/courses/${courseId}/modules/${mod.id}`, { method: "DELETE" });
-    onDelete(mod.id);
   }
 
   async function addLesson() {
     if (!newLessonTitle.trim()) return;
     setSaving(true);
+    if (isEditing) {
+      // In edit mode: create a temp lesson locally
+      const tempLesson: Lesson = {
+        id: makeTempId(),
+        title: newLessonTitle.trim(),
+        duration: null,
+        order: lessons.length + 1,
+        blocks: [],
+      };
+      setLessons((prev) => [...prev, tempLesson]);
+      setNewLessonTitle("");
+      setAddingLesson(false);
+      setSaving(false);
+      return;
+    }
     const res = await fetch(`/api/courses/${courseId}/modules/${mod.id}/lessons`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -1069,6 +1133,73 @@ export function CourseBuilder({ course: initial }: { course: Course }) {
   const [statusLoading, setStatusLoading] = useState(false);
   const [statusError, setStatusError] = useState<string | null>(null);
 
+  // ─── Edit mode ───────────────────────────────────────────────────────────
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const editSnapshot = useRef<{ course: Course; modules: Module[] } | null>(null);
+
+  function enterEdit() {
+    editSnapshot.current = {
+      course: JSON.parse(JSON.stringify(course)),
+      modules: JSON.parse(JSON.stringify(modules)),
+    };
+    setIsEditing(true);
+  }
+
+  function cancelEdit() {
+    if (editSnapshot.current) {
+      setCourse(editSnapshot.current.course);
+      setModules(editSnapshot.current.modules);
+    }
+    editSnapshot.current = null;
+    setIsEditing(false);
+    setSaveError(null);
+  }
+
+  async function saveEdit() {
+    setIsSaving(true);
+    setSaveError(null);
+    try {
+      const res = await fetch(`/api/courses/${course.id}/structure`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: course.title,
+          description: course.description,
+          modules: modules.map((m, mi) => ({
+            id: m.id,
+            title: m.title,
+            order: mi + 1,
+            lessons: m.lessons.map((l, li) => ({
+              id: l.id,
+              title: l.title,
+              order: li + 1,
+              blocks: l.blocks.map((b, bi) => ({
+                id: b.id,
+                type: b.type,
+                title: b.title,
+                payload: b.payload,
+                order: bi + 1,
+              })),
+            })),
+          })),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed to save");
+      // Replace state with server-confirmed structure (real IDs replace temp IDs)
+      if (data.modules) setModules(data.modules);
+      if (data.title) setCourse((prev) => ({ ...prev, title: data.title, description: data.description }));
+      editSnapshot.current = null;
+      setIsEditing(false);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
   // Active item being dragged (for DragOverlay)
   const [activeBlock, setActiveBlock] = useState<Block | null>(null);
   const [activeLesson, setActiveLesson] = useState<Lesson | null>(null);
@@ -1150,11 +1281,13 @@ export function CourseBuilder({ course: initial }: { course: Course }) {
       const reordered = arrayMove(modules, oldIndex, newIndex).map((m, i) => ({ ...m, order: i + 1 }));
       setModules(reordered);
 
-      await fetch(`/api/courses/${course.id}/modules/reorder`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ order: reordered.map((m) => ({ id: m.id, order: m.order })) }),
-      });
+      if (!isEditing) {
+        await fetch(`/api/courses/${course.id}/modules/reorder`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ order: reordered.map((m) => ({ id: m.id, order: m.order })) }),
+        });
+      }
       return;
     }
 
@@ -1163,8 +1296,6 @@ export function CourseBuilder({ course: initial }: { course: Course }) {
       const lessonId = activeId.replace("lesson-", "");
       const srcModuleId = src.moduleId;
 
-      // Determine target module from: sortable container "lessons-{moduleId}",
-      // droppable empty area "droppable-module-{moduleId}", or another lesson's module
       let targetModuleId: string;
       if (sortableContainerId?.startsWith("lessons-")) {
         targetModuleId = sortableContainerId.replace("lessons-", "");
@@ -1182,7 +1313,6 @@ export function CourseBuilder({ course: initial }: { course: Course }) {
       if (!srcMod || !tgtMod) return;
 
       if (srcModuleId === targetModuleId) {
-        // Same module: reorder
         const oldIndex = srcMod.lessons.findIndex((l) => `lesson-${l.id}` === activeId);
         const newIndex = srcMod.lessons.findIndex((l) => `lesson-${l.id}` === overId);
         if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return;
@@ -1190,17 +1320,18 @@ export function CourseBuilder({ course: initial }: { course: Course }) {
         const reordered = arrayMove(srcMod.lessons, oldIndex, newIndex).map((l, i) => ({ ...l, order: i + 1 }));
         setModules((prev) => prev.map((m) => m.id === srcModuleId ? { ...m, lessons: reordered } : m));
 
-        await Promise.all(
-          reordered.map((l) =>
-            fetch(`/api/courses/${course.id}/modules/${srcModuleId}/lessons/${l.id}`, {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ order: l.order }),
-            })
-          )
-        );
+        if (!isEditing) {
+          await Promise.all(
+            reordered.map((l) =>
+              fetch(`/api/courses/${course.id}/modules/${srcModuleId}/lessons/${l.id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ order: l.order }),
+              })
+            )
+          );
+        }
       } else {
-        // Cross-module move
         const lessonToMove = srcMod.lessons.find((l) => l.id === lessonId);
         if (!lessonToMove) return;
 
@@ -1224,36 +1355,33 @@ export function CourseBuilder({ course: initial }: { course: Course }) {
           })
         );
 
-        // Move lesson to target module
-        await fetch(`/api/courses/${course.id}/modules/${srcModuleId}/lessons/${lessonId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ moduleId: targetModuleId, order: insertAt + 1 }),
-        });
-
-        // Fix source lesson orders
-        await Promise.all(
-          newSrcLessons.map((l) =>
-            fetch(`/api/courses/${course.id}/modules/${srcModuleId}/lessons/${l.id}`, {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ order: l.order }),
-            })
-          )
-        );
-
-        // Fix target lesson orders (excluding the moved one)
-        await Promise.all(
-          newTgtLessons
-            .filter((l) => l.id !== lessonId)
-            .map((l) =>
-              fetch(`/api/courses/${course.id}/modules/${targetModuleId}/lessons/${l.id}`, {
+        if (!isEditing) {
+          await fetch(`/api/courses/${course.id}/modules/${srcModuleId}/lessons/${lessonId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ moduleId: targetModuleId, order: insertAt + 1 }),
+          });
+          await Promise.all(
+            newSrcLessons.map((l) =>
+              fetch(`/api/courses/${course.id}/modules/${srcModuleId}/lessons/${l.id}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ order: l.order }),
               })
             )
-        );
+          );
+          await Promise.all(
+            newTgtLessons
+              .filter((l) => l.id !== lessonId)
+              .map((l) =>
+                fetch(`/api/courses/${course.id}/modules/${targetModuleId}/lessons/${l.id}`, {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ order: l.order }),
+                })
+              )
+          );
+        }
       }
       return;
     }
@@ -1262,18 +1390,38 @@ export function CourseBuilder({ course: initial }: { course: Course }) {
     const srcLessonId = src.lessonId!;
     const srcModuleId = src.moduleId;
 
-    // Resolve target lesson:
-    // - over a sortable block: use its sortable containerId (= lesson.id set on SortableContext)
-    // - over a droppable empty area: id is `droppable-${lessonId}`
-    const droppableLesson = overId.startsWith("droppable-") && !overId.startsWith("droppable-module-")
-      ? overId.replace("droppable-", "")
+    // Resolve target lesson ID from drop position.
+    // Several possible cases:
+    //   1. Over a block in a lesson  → sortableContainerId = lesson.id, overBlockLessonId = lesson.id
+    //   2. Over a lesson's empty droppable area → overId = `droppable-${lessonId}`
+    //   3. Over a lesson row header  → overId = `lesson-${lessonId}`,
+    //                                  sortableContainerId = `lessons-${moduleId}` (NOT a lesson id)
+    // Case 3 used to fall through to `overId` which is an unrecognised key, causing silent failure.
+
+    // sortableContainerId is valid as a lesson ID only when it doesn't look like the
+    // lessons-level SortableContext ("lessons-…") or the module-level one ("module-…").
+    const containerIsLessonId =
+      sortableContainerId &&
+      !sortableContainerId.startsWith("lessons-") &&
+      !sortableContainerId.startsWith("module-");
+
+    const droppableLesson =
+      overId.startsWith("droppable-") && !overId.startsWith("droppable-module-")
+        ? overId.replace("droppable-", "")
+        : null;
+
+    // When over a lesson row header the id carries the "lesson-" prefix.
+    const overLessonHeader = overId.startsWith("lesson-")
+      ? overId.replace("lesson-", "")
       : null;
+
     const overBlockLessonId = over.data.current?.lessonId as string | undefined;
 
     const targetLessonId =
-      sortableContainerId ??
+      (containerIsLessonId ? sortableContainerId : undefined) ??
       overBlockLessonId ??
       droppableLesson ??
+      overLessonHeader ??   // drop onto a lesson header → block is appended to that lesson
       overId;
 
     if (!targetLessonId) return;
@@ -1296,19 +1444,19 @@ export function CourseBuilder({ course: initial }: { course: Course }) {
       }));
       updateModuleBlocks(srcModuleId, srcLessonId, () => reordered);
 
-      // Persist new orders
-      await Promise.all(
-        reordered.map((b) =>
-          fetch(
-            `/api/courses/${course.id}/modules/${srcModuleId}/lessons/${srcLessonId}/blocks/${b.id}`,
-            {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ order: b.order }),
-            }
-          )
-        )
-      );
+      if (!isEditing) {
+        await fetch(`/api/courses/${course.id}/blocks/move`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            blockId: activeId,
+            sourceLessonId: srcLessonId,
+            targetLessonId: srcLessonId,
+            sourceBlocks: [],
+            targetBlocks: reordered.map((b) => ({ id: b.id, order: b.order })),
+          }),
+        });
+      }
     } else {
       // ── Cross-lesson move ──────────────────────────────────────────────
       const blockToMove = srcBlocks.find((b) => b.id === activeId);
@@ -1316,12 +1464,10 @@ export function CourseBuilder({ course: initial }: { course: Course }) {
 
       const tgtBlocks = tgtLoc.lesson.blocks;
 
-      // Remove from source, renumber
       const newSrcBlocks = srcBlocks
         .filter((b) => b.id !== activeId)
         .map((b, i) => ({ ...b, order: i + 1 }));
 
-      // Insert into target: if dropped on a block, insert before it; else append
       const overIndex = tgtBlocks.findIndex((b) => b.id === overId);
       const insertAt = overIndex >= 0 ? overIndex : tgtBlocks.length;
       const newTgtBlocks = [
@@ -1330,7 +1476,6 @@ export function CourseBuilder({ course: initial }: { course: Course }) {
         ...tgtBlocks.slice(insertAt),
       ].map((b, i) => ({ ...b, order: i + 1 }));
 
-      // Optimistic update
       setModules((prev) =>
         prev.map((m) => ({
           ...m,
@@ -1342,48 +1487,19 @@ export function CourseBuilder({ course: initial }: { course: Course }) {
         }))
       );
 
-      // Move block to target lesson in DB (updates lessonId + order)
-      await fetch(
-        `/api/courses/${course.id}/modules/${srcModuleId}/lessons/${srcLessonId}/blocks/${activeId}`,
-        {
+      if (!isEditing) {
+        await fetch(`/api/courses/${course.id}/blocks/move`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ lessonId: targetLessonId, order: insertAt + 1 }),
-        }
-      );
-
-      // Fix remaining source block orders
-      if (newSrcBlocks.length > 0) {
-        await Promise.all(
-          newSrcBlocks.map((b) =>
-            fetch(
-              `/api/courses/${course.id}/modules/${srcModuleId}/lessons/${srcLessonId}/blocks/${b.id}`,
-              {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ order: b.order }),
-              }
-            )
-          )
-        );
+          body: JSON.stringify({
+            blockId: activeId,
+            sourceLessonId: srcLessonId,
+            targetLessonId,
+            sourceBlocks: newSrcBlocks.map((b) => ({ id: b.id, order: b.order })),
+            targetBlocks: newTgtBlocks.map((b) => ({ id: b.id, order: b.order })),
+          }),
+        });
       }
-
-      // Fix target block orders (for blocks that shifted)
-      const tgtModuleId = tgtLoc.module.id;
-      await Promise.all(
-        newTgtBlocks
-          .filter((b) => b.id !== activeId)
-          .map((b) =>
-            fetch(
-              `/api/courses/${course.id}/modules/${tgtModuleId}/lessons/${targetLessonId}/blocks/${b.id}`,
-              {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ order: b.order }),
-              }
-            )
-          )
-      );
     }
   }
 
@@ -1392,6 +1508,16 @@ export function CourseBuilder({ course: initial }: { course: Course }) {
   async function addModule() {
     if (!newModuleTitle.trim()) return;
     setAddingModule2(true);
+    if (isEditing) {
+      setModules((prev) => [
+        ...prev,
+        { id: makeTempId(), title: newModuleTitle.trim(), order: prev.length + 1, lessons: [] },
+      ]);
+      setNewModuleTitle("");
+      setAddingModule(false);
+      setAddingModule2(false);
+      return;
+    }
     const res = await fetch(`/api/courses/${course.id}/modules`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -1425,27 +1551,30 @@ export function CourseBuilder({ course: initial }: { course: Course }) {
   }
 
   async function saveCourseTitle(title: string) {
+    setCourse((prev) => ({ ...prev, title }));
+    if (isEditing) return;
     await fetch(`/api/courses/${course.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title }),
     });
-    setCourse((prev) => ({ ...prev, title }));
   }
 
   async function saveCourseDescription(description: string) {
+    setCourse((prev) => ({ ...prev, description: description || null }));
+    if (isEditing) return;
     await fetch(`/api/courses/${course.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ description: description || null }),
     });
-    setCourse((prev) => ({ ...prev, description: description || null }));
   }
 
   const isDraft = course.status === "DRAFT";
   const isPublished = course.status === "PUBLISHED";
 
   return (
+    <EditModeContext.Provider value={isEditing}>
     <DndContext
       sensors={sensors}
       collisionDetection={closestCenter}
@@ -1489,46 +1618,80 @@ export function CourseBuilder({ course: initial }: { course: Course }) {
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            {isDraft && (
-              <Button
-                size="sm"
-                leftIcon={<Eye className="w-4 h-4" />}
-                onClick={() => changeStatus("PUBLISHED")}
-                isLoading={statusLoading}
-              >
-                Publish
-              </Button>
-            )}
-            {isPublished && (
-              <Button
-                size="sm"
-                variant="outline"
-                leftIcon={<EyeOff className="w-4 h-4" />}
-                onClick={() => changeStatus("ARCHIVED")}
-                isLoading={statusLoading}
-              >
-                Archive
-              </Button>
-            )}
-            {course.status === "ARCHIVED" && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => changeStatus("PUBLISHED")}
-                isLoading={statusLoading}
-              >
-                Re-publish
-              </Button>
-            )}
-            {isDraft && (
-              <Button
-                size="sm"
-                variant="danger"
-                leftIcon={<Trash2 className="w-4 h-4" />}
-                onClick={deleteCourse}
-              >
-                Delete
-              </Button>
+            {isEditing ? (
+              <>
+                {saveError && (
+                  <span className="text-xs text-danger">{saveError}</span>
+                )}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={cancelEdit}
+                  disabled={isSaving}
+                >
+                  Discard
+                </Button>
+                <Button
+                  size="sm"
+                  leftIcon={<Check className="w-4 h-4" />}
+                  onClick={saveEdit}
+                  isLoading={isSaving}
+                >
+                  Save
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  leftIcon={<Edit3 className="w-4 h-4" />}
+                  onClick={enterEdit}
+                >
+                  Edit Course
+                </Button>
+                {isDraft && (
+                  <Button
+                    size="sm"
+                    leftIcon={<Eye className="w-4 h-4" />}
+                    onClick={() => changeStatus("PUBLISHED")}
+                    isLoading={statusLoading}
+                  >
+                    Publish
+                  </Button>
+                )}
+                {isPublished && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    leftIcon={<EyeOff className="w-4 h-4" />}
+                    onClick={() => changeStatus("ARCHIVED")}
+                    isLoading={statusLoading}
+                  >
+                    Archive
+                  </Button>
+                )}
+                {course.status === "ARCHIVED" && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => changeStatus("PUBLISHED")}
+                    isLoading={statusLoading}
+                  >
+                    Re-publish
+                  </Button>
+                )}
+                {isDraft && (
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    leftIcon={<Trash2 className="w-4 h-4" />}
+                    onClick={deleteCourse}
+                  >
+                    Delete
+                  </Button>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -1622,5 +1785,6 @@ export function CourseBuilder({ course: initial }: { course: Course }) {
         {activeModule ? <ModuleDragOverlay mod={activeModule} /> : null}
       </DragOverlay>
     </DndContext>
+    </EditModeContext.Provider>
   );
 }
